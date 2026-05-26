@@ -468,17 +468,9 @@ function startApp(){
     // Use once first (works offline/online), then on for live updates
     db.ref('stores').once('value',function(snap){
       storesData=snap.val()||{};
-      var sl2=document.getElementById('store-list');
-      if(sl2) sl2.innerHTML='<div class="empty-stores">تم جلب '+Object.keys(storesData).length+' متجر، جاري العرض...</div>';
-      try{
-        renderHome();
-      }catch(re){
-        if(sl2) sl2.innerHTML='<div class="empty-stores">خطأ في العرض: '+re.message+'</div>';
-      }
-    },function(err){
-      var e=document.getElementById('store-list');
-      if(e) e.innerHTML='<div class="empty-stores">خطأ في القراءة: '+err.message+'</div>';
+      renderHome();
     });
+    
     // Then listen for live updates
     db.ref('stores').on('value',function(snap){
       storesData=snap.val()||{};
@@ -497,13 +489,6 @@ function startApp(){
     if(el) el.innerHTML='<div class="empty-stores">خطأ في الاتصال: '+e.message+'</div>';
   }
 }
-// Start immediately or on DOM ready
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',startApp);
-} else {
-  startApp();
-}
-
 // ── HOME ──
 function renderHome(){
   var el=document.getElementById('store-list');
@@ -1196,6 +1181,13 @@ function submitRating(){
       checkPendingRatings();
     }
   });
+}
+
+// ═══ START THE APP (after all functions defined) ═══
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',startApp);
+} else {
+  startApp();
 }
 </script>
 </body>
