@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8"><!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>توصيل الحي</title>
@@ -1227,70 +1224,6 @@ window.addEventListener('load',function(){
     if(bell) bell.style.display=pending?'flex':'none';
   },2000);
 });
-</script>
-</body>
-</html>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Test Stores</title>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
-<style>
-body{font-family:system-ui;padding:20px;background:#1a1a2e;color:#eee;direction:rtl}
-.box{background:#16213e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.1)}
-.ok{color:#4caf50;font-weight:700}
-.err{color:#f87171;font-weight:700}
-pre{background:#0f172a;padding:12px;border-radius:8px;font-size:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
-</style>
-</head>
-<body>
-<h2>🔍 فحص المتاجر في Firebase</h2>
-<div id="results"></div>
-<script>
-var FB={
-  apiKey:'AIzaSyCY31rq2Z608u7O6iFzE6',
-  authDomain:'twsilya.firebaseapp.com',
-  databaseURL:'https://twsilya-default-rtdb.asia-southeast1.firebasedatabase.app',
-  projectId:'twsilya',
-  storageBucket:'twsilya.firebasestorage.app',
-  messagingSenderId:'191977779172',
-  appId:'1:191977779172:web:9297f1be500b4d1cc8e1f1'
-};
-function log(msg,ok){
-  var d=document.createElement('div');
-  d.className='box';
-  d.innerHTML='<span class="'+(ok?'ok':'err')+'">'+msg+'</span>';
-  document.getElementById('results').appendChild(d);
-}
-function logData(title,data){
-  var d=document.createElement('div');
-  d.className='box';
-  d.innerHTML='<b>'+title+'</b><pre>'+JSON.stringify(data,null,2)+'</pre>';
-  document.getElementById('results').appendChild(d);
-}
-try{
-  var app=firebase.initializeApp(FB);
-  var db=firebase.database();
-  log('✅ Firebase متصل','ok');
-  db.ref('stores').once('value',function(snap){
-    var data=snap.val();
-    if(!data){
-      log('❌ لا توجد بيانات في مسار stores — المسار فارغ','err');
-      log('جرب التحقق من مسار admin_restaurants بدلاً من stores','err');
-      // Check old path
-      db.ref('admin_restaurants').once('value',function(s){
-        var d2=s.val();
-        if(d2) logData('📦 البيانات موجودة في admin_restaurants (المسار القديم)',d2);
-        else log('❌ admin_restaurants أيضاً فارغ','err');
-      });
-    } else {
-      log('✅ وجد '+Object.keys(data).length+' متجر في stores','ok');
-      logData('📦 بيانات stores',data);
-    }
-  });
-} catch(e){
-  log('❌ خطأ: '+e.message,'err');
-}
 </script>
 </body>
 </html>
