@@ -920,11 +920,11 @@ function showCashOptions(){
   var html='<div style="background:#FFF8F0;border-radius:12px;padding:14px;border:1.5px solid #C9A84C">'
     +'<div style="font-size:13px;font-weight:800;color:#2D5016;margin-bottom:10px;text-align:center">اختر طريقة الدفع عند الاستلام</div>';
   if(ct==='cash'||ct==='both')
-    html+='<button class="pay-btn pay-cash" style="margin-bottom:8px" onclick="doSubmit('cash')">💵 نقداً</button>';
+    html+='<button class="pay-btn pay-cash" style="margin-bottom:8px" onclick="doSubmit(\'cash\')">💵 نقداً</button>';
   if(ct==='network'||ct==='both')
-    html+='<button class="pay-btn pay-net" style="margin-bottom:8px" onclick="doSubmit('network')">شبكة</button>';
+    html+='<button class="pay-btn pay-net" style="margin-bottom:8px" onclick="doSubmit(\'network\')">شبكة</button>';
   if(ct==='both')
-    html+='<button class="pay-btn" style="border-color:#8B4513;color:#8B4513;margin-bottom:8px" onclick="doSubmit('both_cash')">💵 نقداً + شبكة</button>';
+    html+='<button class="pay-btn" style="border-color:#8B4513;color:#8B4513;margin-bottom:8px" onclick="doSubmit(\'both_cash\')">💵 نقداً + شبكة</button>';
   html+='<button class="pay-btn" style="border-color:#aaa;color:#aaa;font-size:12px" onclick="renderPayMethods()">← رجوع</button></div>';
   methods.innerHTML=html;
 }
