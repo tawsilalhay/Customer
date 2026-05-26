@@ -400,6 +400,13 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 <div id="notif" class="notif"></div>
 
 <script>
+// GLOBAL ERROR HANDLER - shows any JS error on screen
+window.onerror=function(msg,url,line,col,err){
+  var sl=document.getElementById('store-list');
+  if(sl) sl.innerHTML='<div class="empty-stores" style="color:#dc2626;font-size:12px;text-align:right;padding:14px">خطأ JS:<br>'+msg+'<br>السطر: '+line+'</div>';
+  return false;
+};
+
 var FB_CFG={
   apiKey:'AIzaSyCY31rq2Z608u7O6iFzE6',
   authDomain:'twsilya.firebaseapp.com',
