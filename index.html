@@ -457,21 +457,34 @@ window.addEventListener('load',function(){
   try{
     var app=(firebase.apps&&firebase.apps.length>0)?firebase.apps[0]:firebase.initializeApp(FB_CFG);
     db=firebase.database();
-    // Load stores
+    // Show loading
+    document.getElementById('store-list').innerHTML='<div class="empty-stores">جاري تحميل المتاجر...</div>';
+    // Listen to stores - fires immediately with cached data then updates
     db.ref('stores').on('value',function(snap){
       storesData=snap.val()||{};
       renderHome();
     });
+    // Fallback: if no data after 5 seconds, try once more
+    setTimeout(function(){
+      if(Object.keys(storesData).length===0){
+        db.ref('stores').once('value',function(snap){
+          storesData=snap.val()||{};
+          renderHome();
+        });
+      }
+    },5000);
     loadMyOrders();
     setTimeout(function(){
       watchAllMyOrders();
       watchAllChats();
       updateActiveBadge();
       checkPendingRatings();
-    },1000);
-    // Restore last screen
+    },2000);
     restoreNav();
-  }catch(e){console.error('Firebase error:',e);}
+  }catch(e){
+    document.getElementById('store-list').innerHTML='<div class="empty-stores">خطأ في الاتصال: '+e.message+'</div>';
+    console.error('Firebase error:',e);
+  }
 });
 
 // ── HOME ──
@@ -483,7 +496,11 @@ function renderHome(){
     return info.visible!==false;
   });
   if(!shown.length){
-    el.innerHTML='<div class="empty-stores">لا توجد متاجر متاحة حالياً</div>';
+    if(Object.keys(storesData).length===0){
+      el.innerHTML='<div class="empty-stores">جاري تحميل المتاجر...</div>';
+    } else {
+      el.innerHTML='<div class="empty-stores">لا توجد متاجر متاحة حالياً</div>';
+    }
     return;
   }
   var html='';
