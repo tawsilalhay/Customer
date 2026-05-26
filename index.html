@@ -475,11 +475,18 @@ function listenStores(){
 function renderStoreList(){
   var el=document.getElementById('store-list');
   var ids=Object.keys(storesData);
+  // Show all stores except explicitly hidden (visible===false)
   var visible=ids.filter(function(sid){
-    var info=storesData[sid].info||{};
+    var s=storesData[sid];
+    if(!s) return false;
+    var info=s.info||{};
+    // if visible field doesn't exist or is true → show
     return info.visible!==false;
   });
-  if(!visible.length){el.innerHTML='<div class="empty-stores">لا توجد متاجر متاحة حالياً</div>';return;}
+  if(!visible.length){
+    el.innerHTML='<div class="empty-stores">لا توجد متاجر متاحة حالياً</div>';
+    return;
+  }
   var html='';
   visible.forEach(function(sid){
     var info=storesData[sid].info||{};
