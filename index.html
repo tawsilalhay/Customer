@@ -334,9 +334,9 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
         <div id="pay-type-label" style="font-size:12px;margin-top:5px;opacity:.8"></div>
       </div>
       <div class="pay-methods">
-        <button class="pay-btn pay-apple" onclick="submitOrder('apple_pay')">🍎 Apple Pay</button>
-        <button class="pay-btn pay-mada" onclick="submitOrder('mada')">💳 مدى</button>
-        <button class="pay-btn pay-cash" onclick="submitOrder('cash')">💵 الدفع عند الاستلام</button>
+        <button id="pay-apple-btn" class="pay-btn pay-apple" onclick="submitOrder('apple_pay')">🍎 Apple Pay</button>
+        <button id="pay-mada-btn" class="pay-btn pay-mada" onclick="submitOrder('mada')">💳 مدى</button>
+        <button id="pay-cash-btn" class="pay-btn pay-cash" onclick="submitOrder('cash')">💵 كاش / شبكة</button>
       </div>
     </div>
   </div>
@@ -443,6 +443,7 @@ var custChatLastSeen={};
 var selectedStars=0;
 var ratingOrderId=null;
 var storesData={};
+var storeSettings={};
 
 function san(s){if(!s)return '';return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtT(ts){if(!ts)return '';var d=new Date(ts);return d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});}
@@ -511,6 +512,11 @@ function openStore(sid){
   db.ref('stores/'+sid+'/stock').on('value',function(snap){
     stock=snap.val()||{};
     drawItems();
+  });
+  // Listen to store settings
+  db.ref('stores/'+sid+'/settings').on('value',function(snap){
+    storeSettings=snap.val()||{deliveryFee:10,freeMin:40,deliveryType:'both',cash:true,cashType:'both',mada:true,applePay:true};
+    updatePaymentMethods();
   });
   // Listen to delivery zone
   db.ref('stores/'+sid+'/delivery_zone').on('value',function(snap){
@@ -592,7 +598,36 @@ function updateBadge(){
   if(b){b.textContent=count;b.style.display=count>0?'inline-flex':'none';}
 }
 function getSubtotal(){return cart.reduce(function(s,c){return s+c.price*c.qty;},0);}
-function getDeliveryFee(){if(orderType==='pickup')return 0;return getSubtotal()>=FREE_MIN?0:DELIVERY_FEE;}
+function getDeliveryFee(){
+  if(orderType==='pickup') return 0;
+  var fee=storeSettings.deliveryFee!==undefined?storeSettings.deliveryFee:10;
+  var freeMin=storeSettings.freeMin!==undefined?storeSettings.freeMin:40;
+  if(freeMin>0&&getSubtotal()>=freeMin) return 0;
+  return fee;
+}
+function getFreeMin(){return storeSettings.freeMin!==undefined?storeSettings.freeMin:40;}
+function updatePaymentMethods(){
+  // Update payment buttons visibility
+  var apple=document.getElementById('pay-apple-btn');
+  var mada=document.getElementById('pay-mada-btn');
+  var cash=document.getElementById('pay-cash-btn');
+  if(apple) apple.style.display=storeSettings.applePay!==false?'flex':'none';
+  if(mada) mada.style.display=storeSettings.mada!==false?'flex':'none';
+  if(cash) cash.style.display=storeSettings.cash!==false?'flex':'none';
+  if(cash){
+    var ct=storeSettings.cashType||'both';
+    var cashLabel=ct==='cash'?'💵 كاش':ct==='network'?'🔌 شبكة':'💵 كاش / شبكة';
+    cash.innerHTML=cashLabel;
+  }
+  // Update order type buttons
+  var dt=storeSettings.deliveryType||'both';
+  var dBtn=document.getElementById('btn-delivery');
+  var pBtn=document.getElementById('btn-pickup');
+  if(dBtn) dBtn.style.display=dt==='pickup'?'none':'flex';
+  if(pBtn) pBtn.style.display=dt==='delivery'?'none':'flex';
+  if(dt==='pickup') orderType='pickup';
+  if(dt==='delivery') orderType='delivery';
+}
 function getTotal(){return getSubtotal()+getDeliveryFee();}
 
 function updateFloatBar(){
@@ -605,7 +640,7 @@ function updateFloatBar(){
   var del=document.getElementById('float-delivery');
   if(orderType==='pickup'){del.textContent='🏪 استلام من المتجر';del.className='float-delivery';del.style.color='#a5d6a7';}
   else if(sub>=FREE_MIN){del.textContent='🎉 توصيل مجاني!';del.className='float-delivery';del.style.color='#a5d6a7';}
-  else{del.textContent='أضف '+(FREE_MIN-sub)+' ريال للتوصيل المجاني';del.className='float-delivery';del.style.color='#ffd54f';}
+  else{var rem=getFreeMin()-sub;del.textContent=rem>0?'أضف '+rem+' ريال للتوصيل المجاني':'🛵 رسوم توصيل: '+getDeliveryFee()+' ريال';del.className='float-delivery';del.style.color='#ffd54f';}
 }
 
 // ── SCREENS ──
