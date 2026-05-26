@@ -468,10 +468,16 @@ function startApp(){
     // Use once first (works offline/online), then on for live updates
     db.ref('stores').once('value',function(snap){
       storesData=snap.val()||{};
-      renderHome();
+      var sl2=document.getElementById('store-list');
+      if(sl2) sl2.innerHTML='<div class="empty-stores">تم جلب '+Object.keys(storesData).length+' متجر، جاري العرض...</div>';
+      try{
+        renderHome();
+      }catch(re){
+        if(sl2) sl2.innerHTML='<div class="empty-stores">خطأ في العرض: '+re.message+'</div>';
+      }
     },function(err){
       var e=document.getElementById('store-list');
-      if(e) e.innerHTML='<div class="empty-stores">خطأ: '+err.message+'</div>';
+      if(e) e.innerHTML='<div class="empty-stores">خطأ في القراءة: '+err.message+'</div>';
     });
     // Then listen for live updates
     db.ref('stores').on('value',function(snap){
