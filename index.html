@@ -847,7 +847,7 @@ function renderPayMethods(){
   if(ss.cash!==false){
     var ct=ss.cashType||'both';
     if(ct==='cash'||ct==='both') html+='<button class="pay-btn pay-cash" onclick="doSubmit(\'cash\')">💵 كاش</button>';
-    if(ct==='network'||ct==='both') html+='<button class="pay-btn pay-net" onclick="doSubmit(\'network\')">🔌 شبكة</button>';
+    if(ct==='network'||ct==='both') html+='<button class="pay-btn pay-net" onclick="doSubmit(\'network\')">شبكة</button>';
   }
   if(!html) html='<button class="pay-btn pay-cash" onclick="doSubmit(\'cash\')">💵 كاش</button>';
   document.getElementById('pay-methods').innerHTML=html;
@@ -913,7 +913,7 @@ function watchOrder(id){
 // ── MY ORDERS ──
 var ST_LABELS={pending:'⏳ انتظار',accepted:'✅ تجهيز',on_the_way:'🛵 في الطريق',delivered:'🎉 مُسلَّم',rejected:'❌ مرفوض'};
 var ST_COLORS={pending:'background:#fff3cd;color:#856404',accepted:'background:#d1e7dd;color:#0f5132',on_the_way:'background:#d0f0c0;color:#1a5c1a',delivered:'background:#e8f5e9;color:#2D5016',rejected:'background:#f8d7da;color:#842029'};
-var PAY_NAMES={apple_pay:'Apple Pay 🍎',mada:'مدى 💳',cash:'كاش 💵',network:'شبكة 🔌'};
+var PAY_NAMES={apple_pay:'Apple Pay 🍎',mada:'مدى 💳',cash:'كاش 💵',network:'شبكة'};
 
 function saveMyOrders(){try{localStorage.setItem('my_orders_v3',JSON.stringify(myOrders));}catch(e){}}
 function loadMyOrders(){try{var d=localStorage.getItem('my_orders_v3');if(d)myOrders=JSON.parse(d);}catch(e){myOrders=[];}}
@@ -928,7 +928,12 @@ function watchAllMyOrders(){
     if(o.status==='delivered'||o.status==='rejected') return;
     db.ref('stores/'+(o.storeId||'naseem')+'/orders/'+o.id+'/status').on('value',function(snap){
       var st=snap.val(); if(!st) return;
-      myOrders.forEach(function(mo){if(mo.id===o.id)mo.status=st;});
+      myOrders.forEach(function(mo){
+        if(mo.id===o.id){
+          mo.status=st;
+          if(st==='delivered'&&!mo.deliveredAt) mo.deliveredAt=Date.now();
+        }
+      });
       saveMyOrders(); updateActiveBadge();
       if(st==='delivered') checkRatingBell(o.id);
       if(document.getElementById('s-myorders').classList.contains('active')) renderMyOrders();
@@ -941,8 +946,13 @@ function updateActiveBadge(){
   if(b){b.textContent=n;b.style.display=n>0?'flex':'none';}
 }
 function isChatOpen(o){
-  if(o.status==='accepted'||o.status==='on_the_way') return true;
-  if(o.status==='delivered') return(Date.now()-o.createdAt)<30*60*1000;
+  // Chat available from moment order is placed until 30 min after delivery
+  if(o.status==='pending'||o.status==='accepted'||o.status==='on_the_way') return true;
+  if(o.status==='delivered'){
+    // 30 min after delivery time (use deliveredAt if saved, else createdAt as fallback)
+    var deliveredAt=o.deliveredAt||o.createdAt;
+    return(Date.now()-deliveredAt)<30*60*1000;
+  }
   return false;
 }
 function renderMyOrders(){
