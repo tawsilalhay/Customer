@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>توصيل الحي</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -192,7 +195,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 <div id="s-home" class="screen active">
   <div class="home-hdr">
     <div class="home-hdr-title">توصيل الحي</div>
-    <div class="home-hdr-sub">أطلب من متاجر حيك المفضلة</div>
+    <div class="home-hdr-sub">أطلب من متاجر حيك المفضلة <span style="opacity:.5">v5</span></div>
   </div>
   <div class="ad-banner">
     <div class="ad-circle" style="width:160px;height:160px;top:-50px;left:-40px"></div>
@@ -453,26 +456,24 @@ function checkPhone(inp,statusId){
 }
 
 // ── FIREBASE ──
-window.addEventListener('load',function(){
+function startApp(){
+  // Wait for firebase library to load
+  if(typeof firebase==='undefined'){
+    setTimeout(startApp,300);
+    return;
+  }
   try{
     var app=(firebase.apps&&firebase.apps.length>0)?firebase.apps[0]:firebase.initializeApp(FB_CFG);
     db=firebase.database();
-    // Show loading
-    document.getElementById('store-list').innerHTML='<div class="empty-stores">جاري تحميل المتاجر...</div>';
-    // Listen to stores - fires immediately with cached data then updates
+    var sl=document.getElementById('store-list');
+    if(sl) sl.innerHTML='<div class="empty-stores">جاري تحميل المتاجر...</div>';
     db.ref('stores').on('value',function(snap){
       storesData=snap.val()||{};
       renderHome();
+    },function(err){
+      var e=document.getElementById('store-list');
+      if(e) e.innerHTML='<div class="empty-stores">خطأ: '+err.message+'</div>';
     });
-    // Fallback: if no data after 5 seconds, try once more
-    setTimeout(function(){
-      if(Object.keys(storesData).length===0){
-        db.ref('stores').once('value',function(snap){
-          storesData=snap.val()||{};
-          renderHome();
-        });
-      }
-    },5000);
     loadMyOrders();
     setTimeout(function(){
       watchAllMyOrders();
@@ -482,10 +483,16 @@ window.addEventListener('load',function(){
     },2000);
     restoreNav();
   }catch(e){
-    document.getElementById('store-list').innerHTML='<div class="empty-stores">خطأ في الاتصال: '+e.message+'</div>';
-    console.error('Firebase error:',e);
+    var el=document.getElementById('store-list');
+    if(el) el.innerHTML='<div class="empty-stores">خطأ في الاتصال: '+e.message+'</div>';
   }
-});
+}
+// Start immediately or on DOM ready
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',startApp);
+} else {
+  startApp();
+}
 
 // ── HOME ──
 function renderHome(){
