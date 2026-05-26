@@ -266,8 +266,11 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
     <div><label class="f-label">الاسم</label><input class="f-input" id="f-name" placeholder="اسمك الكريم"></div>
     <div>
       <label class="f-label">رقم الجوال</label>
-      <input class="f-input" id="f-phone" type="tel" placeholder="05xxxxxxxx">
-      <div id="phone-err" style="font-size:11px;color:#dc2626;display:none;margin-top:2px">رقم غير صحيح</div>
+      <div style="font-size:11px;color:#8B7355;margin-bottom:4px;background:#FFF8F0;padding:6px 10px;border-radius:8px;border:1px solid #E8DFD0">
+        📱 أدخل رقمك: <b>05xxxxxxxx</b> (10 أرقام) أو <b>966xxxxxxxxx</b>
+      </div>
+      <input class="f-input" id="f-phone" type="tel" placeholder="05xxxxxxxx" oninput="checkPhone(this,'phone-status')">
+      <div id="phone-status" style="font-size:11px;margin-top:3px;display:none"></div>
     </div>
     <div>
       <label class="f-label">موقعك على الخريطة</label>
@@ -297,8 +300,11 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
     <div><label class="f-label">الاسم</label><input class="f-input" id="p-name" placeholder="اسمك الكريم"></div>
     <div>
       <label class="f-label">رقم الجوال</label>
-      <input class="f-input" id="p-phone" type="tel" placeholder="05xxxxxxxx">
-      <div id="p-phone-err" style="font-size:11px;color:#dc2626;display:none;margin-top:2px">رقم غير صحيح</div>
+      <div style="font-size:11px;color:#8B7355;margin-bottom:4px;background:#FFF8F0;padding:6px 10px;border-radius:8px;border:1px solid #E8DFD0">
+        📱 أدخل رقمك: <b>05xxxxxxxx</b> (10 أرقام) أو <b>966xxxxxxxxx</b>
+      </div>
+      <input class="f-input" id="p-phone" type="tel" placeholder="05xxxxxxxx" oninput="checkPhone(this,'p-phone-status')">
+      <div id="p-phone-status" style="font-size:11px;margin-top:3px;display:none"></div>
     </div>
     <div class="f-card" id="pickup-summary"></div>
     <button class="submit-btn" onclick="goToPayPickup()">متابعة للدفع ←</button>
@@ -429,6 +435,22 @@ function san(s){if(!s)return'';return String(s).replace(/</g,'&lt;').replace(/>/
 function fmtT(ts){if(!ts)return'';var d=new Date(ts);return d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});}
 function showNotif(msg){var el=document.getElementById('notif');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},3500);}
 function validPhone(p){var v=p.replace(/\s/g,'');return/^05\d{8}$/.test(v)||/^966\d{9}$/.test(v);}
+function checkPhone(inp,statusId){
+  var v=inp.value.replace(/\s/g,'');
+  var el=document.getElementById(statusId);
+  if(!el) return;
+  if(!v){el.style.display='none';inp.style.borderColor='#E8DFD0';return;}
+  el.style.display='block';
+  if(validPhone(v)){
+    el.textContent='✅ رقم صحيح';
+    el.style.color='#2D5016';
+    inp.style.borderColor='#2D5016';
+  } else {
+    el.textContent='❌ رقم غير صحيح — تأكد من الصيغة';
+    el.style.color='#dc2626';
+    inp.style.borderColor='#ffcdd2';
+  }
+}
 
 // ── FIREBASE ──
 window.addEventListener('load',function(){
@@ -853,6 +875,24 @@ function renderPayMethods(){
   document.getElementById('pay-methods').innerHTML=html;
 }
 
+// ── CASH OPTIONS ──
+function showCashOptions(){
+  var methods=document.getElementById('pay-methods');
+  if(!methods) return;
+  var ss=storeSettings;
+  var ct=ss.cashType||'both';
+  var html='<div style="background:#FFF8F0;border-radius:12px;padding:14px;border:1.5px solid #C9A84C">'
+    +'<div style="font-size:13px;font-weight:800;color:#2D5016;margin-bottom:10px;text-align:center">اختر طريقة الدفع عند الاستلام</div>';
+  if(ct==='cash'||ct==='both')
+    html+='<button class="pay-btn pay-cash" style="margin-bottom:8px" onclick="doSubmit('cash')">💵 نقداً</button>';
+  if(ct==='network'||ct==='both')
+    html+='<button class="pay-btn pay-net" style="margin-bottom:8px" onclick="doSubmit('network')">شبكة</button>';
+  if(ct==='both')
+    html+='<button class="pay-btn" style="border-color:#8B4513;color:#8B4513;margin-bottom:8px" onclick="doSubmit('both_cash')">💵 نقداً + شبكة</button>';
+  html+='<button class="pay-btn" style="border-color:#aaa;color:#aaa;font-size:12px" onclick="renderPayMethods()">← رجوع</button></div>';
+  methods.innerHTML=html;
+}
+
 // ── SUBMIT ORDER ──
 function doSubmit(payMethod){
   if(!db||!currentStoreId){alert('خطأ في الاتصال');return;}
@@ -913,7 +953,7 @@ function watchOrder(id){
 // ── MY ORDERS ──
 var ST_LABELS={pending:'⏳ انتظار',accepted:'✅ تجهيز',on_the_way:'🛵 في الطريق',delivered:'🎉 مُسلَّم',rejected:'❌ مرفوض'};
 var ST_COLORS={pending:'background:#fff3cd;color:#856404',accepted:'background:#d1e7dd;color:#0f5132',on_the_way:'background:#d0f0c0;color:#1a5c1a',delivered:'background:#e8f5e9;color:#2D5016',rejected:'background:#f8d7da;color:#842029'};
-var PAY_NAMES={apple_pay:'Apple Pay 🍎',mada:'مدى 💳',cash:'كاش 💵',network:'شبكة'};
+var PAY_NAMES={apple_pay:'Apple Pay 🍎',mada:'مدى 💳',cash:'نقداً 💵',network:'شبكة',both_cash:'نقداً + شبكة',network_only:'شبكة'};
 
 function saveMyOrders(){try{localStorage.setItem('my_orders_v3',JSON.stringify(myOrders));}catch(e){}}
 function loadMyOrders(){try{var d=localStorage.getItem('my_orders_v3');if(d)myOrders=JSON.parse(d);}catch(e){myOrders=[];}}
