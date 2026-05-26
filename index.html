@@ -333,10 +333,11 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
         <div class="pay-total-amount" id="pay-amount">0 ريال</div>
         <div id="pay-type-label" style="font-size:12px;margin-top:5px;opacity:.8"></div>
       </div>
-      <div class="pay-methods">
+      <div class="pay-methods" id="pay-methods-container">
         <button id="pay-apple-btn" class="pay-btn pay-apple" onclick="submitOrder('apple_pay')">🍎 Apple Pay</button>
         <button id="pay-mada-btn" class="pay-btn pay-mada" onclick="submitOrder('mada')">💳 مدى</button>
-        <button id="pay-cash-btn" class="pay-btn pay-cash" onclick="submitOrder('cash')">💵 كاش / شبكة</button>
+        <!-- Cash options rendered dynamically -->
+        <div id="cash-options-wrap"></div>
       </div>
     </div>
   </div>
@@ -558,25 +559,75 @@ function drawItems(){
   keys.forEach(function(pid){
     var p=prods[pid];
     var stk=getStock(pid);
-    var inCart=getCartQty(pid);
     var outOfStock=stk===0;
     var mi=p.images&&p.images.main;
-    html+='<div class="item-card"><div class="item-top">';
+    var hasSizes=p.sizes&&p.sizes.length>0;
+    var hasExtras=p.extras&&p.extras.length>0;
+
+    html+='<div class="item-card">';
+    // صورة + اسم + وصف + سعر
+    html+='<div class="item-top">';
     if(mi) html+='<img class="item-img" src="'+mi+'">';
     html+='<div style="flex:1"><div class="item-name">'+san(p.name)+'</div>';
     if(p.desc) html+='<div class="item-desc">'+san(p.desc)+'</div>';
-    html+='<div class="item-price">'+(p.price!=null?p.price+' ريال':'')+'</div>';
+    if(!hasSizes&&p.price!=null) html+='<div class="item-price">'+p.price+' ريال</div>';
     if(outOfStock) html+='<div class="item-out">نفد المخزون</div>';
     html+='</div>';
-    html+='<div class="qty-ctrl">';
-    html+='<button class="qc-btn"'+(inCart===0||outOfStock?' disabled':'')+' onclick="changeQty(\''+pid+'\',null,'+(p.price||0)+',-1)">−</button>';
-    html+='<span class="qc-num">'+inCart+'</span>';
-    html+='<button class="qc-btn"'+(inCart>=stk||outOfStock?' disabled':'')+' onclick="changeQty(\''+pid+'\',null,'+(p.price||0)+',1)">+</button>';
-    html+='</div></div></div>';
+    // زر الإضافة للسلة (بدون أحجام)
+    if(!hasSizes){
+      var inCart=getCartQty(pid);
+      html+='<div class="qty-ctrl">'
+        +'<button class="qc-btn"'+(inCart===0||outOfStock?' disabled':'')+' onclick="changeQty(''+pid+'',null,'+(p.price||0)+',-1)">−</button>'
+        +'<span class="qc-num">'+inCart+'</span>'
+        +'<button class="qc-btn"'+(inCart>=stk||outOfStock?' disabled':'')+' onclick="changeQty(''+pid+'',null,'+(p.price||0)+',1)">+</button>'
+        +'</div>';
+    }
+    html+='</div>';
+
+    // الأحجام (إجبارية إذا موجودة)
+    if(hasSizes){
+      html+='<div class="size-rows">';
+      p.sizes.forEach(function(sz){
+        var skey=pid+'-'+sz.name;
+        var sinCart=getCartQty(skey);
+        html+='<div class="size-row">'
+          +'<div><span class="size-label">'+san(sz.name)+'</span> <span class="size-price">'+sz.price+' ريال</span>'
+          +(outOfStock?'<div class="item-out">نفد المخزون</div>':'')+'</div>'
+          +'<div class="qty-ctrl">'
+          +'<button class="qc-btn"'+(sinCart===0||outOfStock?' disabled':'')+' onclick="changeQty(''+pid+'',''+sz.name+'','+sz.price+',-1)">−</button>'
+          +'<span class="qc-num">'+sinCart+'</span>'
+          +'<button class="qc-btn"'+(sinCart>=stk||outOfStock?' disabled':'')+' onclick="changeQty(''+pid+'',''+sz.name+'','+sz.price+',1)">+</button>'
+          +'</div></div>';
+      });
+      html+='</div>';
+    }
+
+    // الإضافات — إجبارية على العميل (يجب اختيار واحدة على الأقل)
+    if(hasExtras){
+      html+='<div style="margin-top:8px;padding:8px;background:#FFF8F0;border-radius:10px;border:1px solid #E8DFD0">'
+        +'<div style="font-size:12px;font-weight:700;color:#2D5016;margin-bottom:6px">⚡ إضافات إجبارية — اختر:</div>';
+      p.extras.forEach(function(ex){
+        var ekey=pid+'-extra-'+ex.name;
+        var inCart=getCartQty(ekey);
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#fff;border-radius:8px;margin-bottom:4px;border:1px solid #E8DFD0">'
+          +'<div><span style="font-size:13px;font-weight:600">'+san(ex.name)+'</span>'
+          +(ex.price>0?'<span style="font-size:12px;color:#8B7355;margin-right:6px"> +'+ex.price+' ريال</span>':'')
+          +'</div>'
+          +'<div class="qty-ctrl">'
+          +'<button class="qc-btn"'+(inCart===0?' disabled':'')+' onclick="changeQty(''+ekey+'',null,'+ex.price+',-1)">−</button>'
+          +'<span class="qc-num">'+inCart+'</span>'
+          +'<button class="qc-btn" onclick="changeQty(''+ekey+'',null,'+ex.price+',1)">+</button>'
+          +'</div></div>';
+      });
+      html+='</div>';
+    }
+
+    html+='</div>';
   });
   el.innerHTML=html;
   updateFloatBar();
 }
+
 
 function changeQty(id,size,price,delta){
   var key=id+(size?'-'+size:'');
@@ -607,19 +658,30 @@ function getDeliveryFee(){
 }
 function getFreeMin(){return storeSettings.freeMin!==undefined?storeSettings.freeMin:40;}
 function updatePaymentMethods(){
-  // Update payment buttons visibility
+  // Apple Pay
   var apple=document.getElementById('pay-apple-btn');
-  var mada=document.getElementById('pay-mada-btn');
-  var cash=document.getElementById('pay-cash-btn');
   if(apple) apple.style.display=storeSettings.applePay!==false?'flex':'none';
+  // Mada
+  var mada=document.getElementById('pay-mada-btn');
   if(mada) mada.style.display=storeSettings.mada!==false?'flex':'none';
-  if(cash) cash.style.display=storeSettings.cash!==false?'flex':'none';
-  if(cash){
-    var ct=storeSettings.cashType||'both';
-    var cashLabel=ct==='cash'?'💵 كاش':ct==='network'?'🔌 شبكة':'💵 كاش / شبكة';
-    cash.innerHTML=cashLabel;
+  // Cash options - render based on cashType
+  var cashWrap=document.getElementById('cash-options-wrap');
+  if(cashWrap){
+    if(storeSettings.cash===false){
+      cashWrap.innerHTML='';
+    } else {
+      var ct=storeSettings.cashType||'both';
+      var cashHtml='';
+      if(ct==='cash'||ct==='both'){
+        cashHtml+='<button class="pay-btn pay-cash" onclick="submitOrder('cash')" style="margin-top:0">💵 كاش</button>';
+      }
+      if(ct==='network'||ct==='both'){
+        cashHtml+='<button class="pay-btn pay-cash" onclick="submitOrder('network')" style="margin-top:0;border-color:#6366f1;color:#6366f1">🔌 شبكة</button>';
+      }
+      cashWrap.innerHTML=cashHtml;
+    }
   }
-  // Update order type buttons
+  // Delivery type
   var dt=storeSettings.deliveryType||'both';
   var dBtn=document.getElementById('btn-delivery');
   var pBtn=document.getElementById('btn-pickup');
@@ -927,27 +989,57 @@ function updateActiveOrdersBadge(){
 function drawMyOrders(){
   var el=document.getElementById('my-orders-list');
   if(!myOrders.length){el.innerHTML='<div class="empty-msg">📭<br>لا توجد طلبات سابقة</div>';return;}
+  var PAY_NAMES={apple_pay:'Apple Pay 🍎',mada:'مدى 💳',cash:'كاش 💵',network:'شبكة 🔌',both:'كاش/شبكة'};
   var html='';
   myOrders.forEach(function(o){
-    var items=o.items?o.items.slice(0,2).map(function(i){return san(i.name)+' ×'+i.qty;}).join('، ')+(o.items.length>2?' ...':''):'';
     var st=ST_LABELS[o.status]||o.status;
     var sc=ST_COLORS[o.status]||'';
-    var date=new Date(o.createdAt).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+    var date=fmtT(o.createdAt);
     var unread=custChatUnread[o.id]||0;
+    var typeLabel=o.orderType==='pickup'?'🏪 استلام':'🛵 توصيل';
+    var payLabel=o.payMethod?(PAY_NAMES[o.payMethod]||o.payMethod):'';
+    var itemsHtml='';
+    if(o.items&&o.items.length){
+      o.items.forEach(function(it){
+        itemsHtml+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #f0ebe4">'
+          +'<span>'+san(it.name)+(it.size?' ('+it.size+')':'')+'  x'+it.qty+'</span>'
+          +'<span style="font-weight:700">'+(it.price*it.qty)+' ر</span></div>';
+      });
+    }
+    var chatOpen=isChatOpenForOrder(o);
     html+='<div class="my-order-card">'
-      +'<div class="my-order-header"><span class="my-order-id">#'+o.id.slice(-4).toUpperCase()+'</span>'
-      +'<span class="my-order-status" style="'+sc+'">'+st+'</span></div>'
-      +'<div style="font-size:11px;color:#aaa;margin-bottom:4px">'+(o.storeName||'')+'</div>'
-      +'<div style="font-size:12px;color:#8B7355;margin-bottom:6px">'+items+'</div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:center">'
-      +'<span style="font-weight:800;color:#2D5016">'+o.total+' ريال</span>'
-      +'<span style="font-size:11px;color:#aaa">'+date+'</span></div>'
-      +(o.status!=='delivered'&&o.status!=='rejected'?'<button class="track-btn" onclick="trackOrder(\''+o.id+'\',\''+o.storeId+'\')">🔍 تتبع الطلب</button>':'')
-      +isChatOpenForOrder(o)?'<button class="chat-btn-cust" onclick="openChat(\''+o.id+'\',\''+o.storeId+'\')">💬 محادثة المتجر'+(unread>0?'<span class="chat-unread-badge">'+unread+'</span>':'')+'</button>':''
+      +'<div class="my-order-header">'
+      +'<span class="my-order-id">#'+o.id.slice(-4).toUpperCase()+'</span>'
+      +'<span class="my-order-status" style="'+sc+'">'+st+'</span>'
+      +'</div>'
+      +'<div style="font-size:13px;font-weight:800;color:#2D5016;margin-bottom:2px">'+san(o.storeName||'المتجر')+'</div>'
+      +'<div style="font-size:11px;color:#aaa;margin-bottom:10px">'+date+'</div>'
+      +(itemsHtml?'<div style="margin-bottom:8px">'+itemsHtml+'</div>':'')
+      +'<div style="background:#F7F3EE;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>الجزئي</span><span>'+(o.subtotal||o.total||0)+' ريال</span></div>'
+      +(o.orderType==='delivery'
+        ?(o.deliveryFee>0
+          ?'<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>التوصيل</span><span>'+o.deliveryFee+' ريال</span></div>'
+          :'<div style="display:flex;justify-content:space-between;margin-bottom:3px;color:#2D5016"><span>التوصيل</span><span>مجاني 🎉</span></div>')
+        :'')
+      +'<div style="display:flex;justify-content:space-between;font-weight:800;border-top:1px solid #E8DFD0;padding-top:4px;margin-top:3px">'
+      +'<span>الإجمالي</span><span style="color:#2D5016">'+o.total+' ريال</span></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;font-size:11px">'
+      +'<span style="background:#E8DFD0;padding:3px 8px;border-radius:20px">'+typeLabel+'</span>'
+      +(payLabel?'<span style="background:#E8DFD0;padding:3px 8px;border-radius:20px">'+payLabel+'</span>':'')
+      +'</div>'
+      +(o.status!=='delivered'&&o.status!=='rejected'
+        ?'<button class="track-btn" onclick="trackOrder(''+o.id+'',''+o.storeId+'')" style="margin-bottom:6px">🔍 تتبع الطلب</button>'
+        :'')
+      +(chatOpen
+        ?'<button class="chat-btn-cust" onclick="openChat(''+o.id+'',''+o.storeId+'')">💬 محادثة المتجر'+(unread>0?'<span class="chat-unread-badge">'+unread+'</span>':'')+'</button>'
+        :'')
       +'</div>';
   });
   el.innerHTML=html;
 }
+
 
 function isChatOpenForOrder(o){
   if(o.status==='accepted'||o.status==='on_the_way') return true;
