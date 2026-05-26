@@ -7,8 +7,6 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>توصيل الحي</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <style>
@@ -817,8 +815,20 @@ function renderPickupSummary(){
 }
 
 // ── MAP ──
+function loadLeaflet(cb){
+  if(typeof L!=='undefined'){cb();return;}
+  var css=document.createElement('link');
+  css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  document.head.appendChild(css);
+  var js=document.createElement('script');
+  js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  js.onload=cb;
+  document.head.appendChild(js);
+}
+
 function initMap(){
   if(leafMap) return;
+  loadLeaflet(function(){
   setTimeout(function(){
     leafMap=L.map('map').setView([24.381,39.608],15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(leafMap);
@@ -831,6 +841,7 @@ function initMap(){
     if(storeZone) drawZone();
     leafMap.invalidateSize();
   },200);
+  });
 }
 function drawZone(){
   if(!leafMap||!storeZone) return;
