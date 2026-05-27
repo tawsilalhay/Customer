@@ -20,6 +20,9 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 .home-hdr-sub{font-size:12px;opacity:.8;margin-top:2px}
 .ad-banner{width:100%;height:25vh;min-height:170px;background:linear-gradient(135deg,#1a3a0a,#2D5016,#4a7c1f);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
 .ad-circle{position:absolute;border-radius:50%;background:rgba(255,255,255,.07)}
+.ad-slide{min-width:100%;height:100%;background-size:cover;background-position:center;background-repeat:no-repeat;flex-shrink:0}
+.ad-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;transition:all .3s}
+.ad-dot.active{background:#fff;width:20px;border-radius:4px}
 .ad-content{text-align:center;padding:20px;color:#fff;position:relative;z-index:2}
 .ad-title{font-size:24px;font-weight:800;margin-bottom:6px}
 .ad-text{font-size:13px;opacity:.9;line-height:1.6}
@@ -195,13 +198,18 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
     <div class="home-hdr-title">توصيل الحي</div>
     <div class="home-hdr-sub">أطلب من متاجر حيك المفضلة</div>
   </div>
-  <div class="ad-banner">
-    <div class="ad-circle" style="width:160px;height:160px;top:-50px;left:-40px"></div>
-    <div class="ad-circle" style="width:100px;height:100px;bottom:-30px;right:10px"></div>
-    <div class="ad-content">
-      <div class="ad-title">توصيل الحي 🛵</div>
-      <div class="ad-text">من متاجر حيك مباشرة لبابك<br>سريع، سهل، وموثوق</div>
-      <div class="ad-badge">اطلب الآن</div>
+  <div id="ads-slider" style="width:100%;height:25vh;min-height:170px;position:relative;overflow:hidden;background:linear-gradient(135deg,#1a3a0a,#2D5016,#4a7c1f)">
+    <div id="ads-track" style="display:flex;height:100%;transition:transform 0.5s ease;will-change:transform"></div>
+    <div id="ads-dots" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10"></div>
+    <!-- Default ad shown when no ads in Firebase -->
+    <div id="ads-default" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:absolute;inset:0">
+      <div class="ad-circle" style="width:160px;height:160px;top:-50px;left:-40px"></div>
+      <div class="ad-circle" style="width:100px;height:100px;bottom:-30px;right:10px"></div>
+      <div class="ad-content">
+        <div class="ad-title">توصيل الحي 🛵</div>
+        <div class="ad-text">من متاجر حيك مباشرة لبابك<br>سريع، سهل، وموثوق</div>
+        <div class="ad-badge">اطلب الآن</div>
+      </div>
     </div>
   </div>
   <div class="section-title">المتاجر المتاحة</div>
@@ -454,6 +462,74 @@ function checkPhone(inp,statusId){
 }
 
 // ── FIREBASE ──
+var adsData=[];
+var adsIndex=0;
+var adsTimer=null;
+
+function loadAds(){
+  if(!db) return;
+  db.ref('ads').on('value',function(snap){
+    var data=snap.val()||{};
+    var list=Object.keys(data).map(function(k){
+      var a=data[k]; a.id=k; return a;
+    }).filter(function(a){return a.visible!==false && a.image;});
+    adsData=list;
+    renderAds();
+  });
+}
+
+function renderAds(){
+  var track=document.getElementById('ads-track');
+  var dots=document.getElementById('ads-dots');
+  var def=document.getElementById('ads-default');
+  if(!track||!dots) return;
+  if(!adsData.length){
+    if(def) def.style.display='flex';
+    track.innerHTML=''; dots.innerHTML='';
+    if(adsTimer) clearInterval(adsTimer);
+    return;
+  }
+  if(def) def.style.display='none';
+  adsIndex=0;
+  // Build slides
+  track.innerHTML=adsData.map(function(a){
+    return '<div class="ad-slide" style="background-image:url('+JSON.stringify(a.image)+')"></div>';
+  }).join('');
+  // Build dots
+  dots.innerHTML=adsData.map(function(a,i){
+    return '<div class="ad-dot'+(i===0?' active':'')+'" onclick="goToAd('+i+')"></div>';
+  }).join('');
+  // Start auto-slide
+  if(adsTimer) clearInterval(adsTimer);
+  if(adsData.length>1){
+    adsTimer=setInterval(function(){
+      adsIndex=(adsIndex+1)%adsData.length;
+      showAd(adsIndex);
+    },5000);
+  }
+  showAd(0);
+}
+
+function showAd(idx){
+  adsIndex=idx;
+  var track=document.getElementById('ads-track');
+  if(track) track.style.transform='translateX('+idx*100+'%)';
+  document.querySelectorAll('.ad-dot').forEach(function(d,i){
+    d.classList.toggle('active',i===idx);
+  });
+}
+
+function goToAd(idx){
+  if(adsTimer) clearInterval(adsTimer);
+  showAd(idx);
+  if(adsData.length>1){
+    adsTimer=setInterval(function(){
+      adsIndex=(adsIndex+1)%adsData.length;
+      showAd(adsIndex);
+    },5000);
+  }
+}
+
 var startAttempts=0;
 function startApp(){
   // Wait for firebase library to load (retry up to 30 times = 9 seconds)
@@ -470,6 +546,7 @@ function startApp(){
     var sl=document.getElementById('store-list');
     if(sl) sl.innerHTML='<div class="empty-stores">جاري تحميل المتاجر...</div>';
     // Use once first (works offline/online), then on for live updates
+    loadAds();
     db.ref('stores').once('value',function(snap){
       storesData=snap.val()||{};
       renderHome();
