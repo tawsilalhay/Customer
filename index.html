@@ -201,14 +201,14 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
   <div id="ads-slider" style="width:100%;height:25vh;min-height:170px;position:relative;overflow:hidden;background:linear-gradient(135deg,#1a3a0a,#2D5016,#4a7c1f)">
     <div id="ads-track" style="display:flex;height:100%;transition:transform 0.5s ease;will-change:transform"></div>
     <div id="ads-dots" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10"></div>
-    <!-- Default ad shown when no ads in Firebase -->
+    <!-- Default banner - text loaded from Firebase -->
     <div id="ads-default" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:absolute;inset:0">
       <div class="ad-circle" style="width:160px;height:160px;top:-50px;left:-40px"></div>
       <div class="ad-circle" style="width:100px;height:100px;bottom:-30px;right:10px"></div>
       <div class="ad-content">
-        <div class="ad-title">توصيل الحي 🛵</div>
-        <div class="ad-text">من متاجر حيك مباشرة لبابك<br>سريع، سهل، وموثوق</div>
-        <div class="ad-badge">اطلب الآن</div>
+        <div class="ad-title" id="banner-title">توصيل الحي 🛵</div>
+        <div class="ad-text" id="banner-text">من متاجر حيك مباشرة لبابك<br>سريع، سهل، وموثوق</div>
+        <div class="ad-badge" id="banner-badge-el">اطلب الآن</div>
       </div>
     </div>
   </div>
@@ -468,18 +468,15 @@ var adsTimer=null;
 
 function loadAds(){
   if(!db) return;
-  // Load default ad text
-  db.ref('default_ad').on('value',function(snap){
+  // Load banner text from Firebase
+  db.ref('banner').on('value',function(snap){
     var d=snap.val()||{};
-    var def=document.getElementById('ads-default');
-    if(def){
-      var t=def.querySelector('.ad-title');
-      var tx=def.querySelector('.ad-text');
-      var b=def.querySelector('.ad-badge');
-      if(t) t.textContent=d.title||'توصيل الحي 🛵';
-      if(tx) tx.textContent=d.text||'من متاجر حيك مباشرة لبابك';
-      if(b) b.textContent=d.badge||'اطلب الآن';
-    }
+    var t=document.getElementById('banner-title');
+    var tx=document.getElementById('banner-text');
+    var b=document.getElementById('banner-badge-el');
+    if(t) t.textContent=d.line1||'توصيل الحي 🛵';
+    if(tx) tx.innerHTML=(d.line2||'من متاجر حيك مباشرة لبابك')+'<br>'+(d.line3||'سريع، سهل، وموثوق');
+    if(b) b.textContent=d.badge||'اطلب الآن';
   });
   // Load ad images
   db.ref('ads').on('value',function(snap){
