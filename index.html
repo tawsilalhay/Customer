@@ -468,6 +468,20 @@ var adsTimer=null;
 
 function loadAds(){
   if(!db) return;
+  // Load default ad text
+  db.ref('default_ad').on('value',function(snap){
+    var d=snap.val()||{};
+    var def=document.getElementById('ads-default');
+    if(def){
+      var t=def.querySelector('.ad-title');
+      var tx=def.querySelector('.ad-text');
+      var b=def.querySelector('.ad-badge');
+      if(t) t.textContent=d.title||'توصيل الحي 🛵';
+      if(tx) tx.textContent=d.text||'من متاجر حيك مباشرة لبابك';
+      if(b) b.textContent=d.badge||'اطلب الآن';
+    }
+  });
+  // Load ad images
   db.ref('ads').on('value',function(snap){
     var data=snap.val()||{};
     var list=Object.keys(data).map(function(k){
