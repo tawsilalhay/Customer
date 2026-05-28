@@ -195,8 +195,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 <!-- HOME -->
 <div id="s-home" class="screen active">
   <div class="home-hdr">
-    <div class="home-hdr-title">توصيل الحي</div>
-    <div class="home-hdr-sub">أطلب من متاجر حيك المفضلة</div>
+    <div class="home-hdr-title" id="app-hdr-title">توصيل الحي</div>
+    <div class="home-hdr-sub" id="app-hdr-sub">أطلب من متاجر حيك المفضلة</div>
   </div>
   <div id="ads-slider" style="width:100%;height:25vh;min-height:170px;position:relative;overflow:hidden;background:linear-gradient(135deg,#1a3a0a,#2D5016,#4a7c1f)">
     <div id="ads-track" style="display:flex;height:100%;transition:transform 0.5s ease;will-change:transform"></div>
@@ -468,6 +468,14 @@ var adsTimer=null;
 
 function loadAds(){
   if(!db) return;
+  // Load app header
+  db.ref('app_header').on('value',function(snap){
+    var d=snap.val()||{};
+    var t=document.getElementById('app-hdr-title');
+    var s=document.getElementById('app-hdr-sub');
+    if(t) t.textContent=d.title||'توصيل الحي';
+    if(s) s.textContent=d.sub||'أطلب من متاجر حيك المفضلة';
+  });
   // Load banner text from Firebase
   db.ref('banner').on('value',function(snap){
     var d=snap.val()||{};
