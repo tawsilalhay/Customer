@@ -1013,27 +1013,28 @@ function renderPayMethods(){
   var hasElectronic=(ss.mada!==false||ss.applePay!==false);
 
   if(hasElectronic && typeof Moyasar !== 'undefined'){
-    // Show Moyasar form
     if(formWrap) formWrap.style.display='block';
-    // Build methods
+    // Apple Pay methods only if enabled
     var moyMethods=['creditcard'];
-    if(ss.applePay!==false) moyMethods.push('applepay');
-    // Clear old form
+    // Note: applepay requires merchant validation server - skip for now
+    // if(ss.applePay!==false) moyMethods.push('applepay');
+
     var formEl=document.querySelector('.mysr-form');
     if(formEl) formEl.innerHTML='';
     moyasarInitialized=false;
-    // Cash button below
+
     if(methods){
       methods.style.display='block';
+      var cashHtml='';
       if(ss.cash!==false){
+        cashHtml='<div style="text-align:center;margin:8px 0;font-size:12px;color:#8B7355">— أو —</div>';
         var ct=ss.cashType||'both';
-        var cashHtml='<div style="text-align:center;margin:8px 0;font-size:12px;color:#8B7355">— أو —</div>';
         if(ct==='cash'||ct==='both') cashHtml+='<button class="pay-btn pay-cash" onclick="showCashOptions()">💵 الدفع عند الاستلام</button>';
-        methods.innerHTML=cashHtml;
-      } else {
-        methods.innerHTML='';
+        else if(ct==='network') cashHtml+='<button class="pay-btn pay-net" onclick="showCashOptions()">شبكة</button>';
       }
+      methods.innerHTML=cashHtml;
     }
+
     setTimeout(function(){
       if(moyasarInitialized) return;
       moyasarInitialized=true;
@@ -1045,12 +1046,16 @@ function renderPayMethods(){
           description: 'طلب من '+(storeInfo.name||'توصيل الحي'),
           publishable_api_key: MOYASAR_KEY,
           methods: moyMethods,
+          country_code: 'SA',
           supported_networks: ['mada','visa','mastercard','amex'],
+          callback_url: 'https://alhay.app',
           on_completed: function(payment){
             if(payment&&payment.status==='paid'){
               var src=payment.source||{};
-              var method=src.type==='applepay'?'apple_pay':(src.company==='mada'?'mada':'visa');
+              var method=src.company==='mada'?'mada':'visa';
               doSubmit(method);
+            } else {
+              showNotif('❌ لم يكتمل الدفع');
             }
           },
           on_failed: function(payment,error){
@@ -1058,8 +1063,7 @@ function renderPayMethods(){
           }
         });
       }catch(e){
-        console.error('Moyasar init error:',e);
-        // Fallback to buttons
+        console.error('Moyasar:',e);
         if(formWrap) formWrap.style.display='none';
         if(methods){
           var html='';
@@ -1072,7 +1076,6 @@ function renderPayMethods(){
       }
     },400);
   } else {
-    // No electronic or Moyasar not loaded - show buttons
     if(formWrap) formWrap.style.display='none';
     if(methods) methods.style.display='block';
     var html='';
@@ -1083,6 +1086,7 @@ function renderPayMethods(){
     if(methods) methods.innerHTML=html;
   }
 }
+
 
 
 // ── CASH OPTIONS ──
