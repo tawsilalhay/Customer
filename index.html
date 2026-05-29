@@ -1004,20 +1004,86 @@ function goToPayPickup(){
   go('payment');
 }
 function renderPayMethods(){
-  document.getElementById('pay-amount').textContent=getTotal()+' ريال';
+  var total=getTotal();
+  document.getElementById('pay-amount').textContent=total+' ريال';
   document.getElementById('pay-type-label').textContent=orderType==='pickup'?'🏪 استلام':'🛵 توصيل';
   var ss=storeSettings;
-  var html='';
-  if(ss.applePay!==false) html+='<button class="pay-btn pay-apple" onclick="doSubmit(\'apple_pay\')">🍎 Apple Pay</button>';
-  if(ss.mada!==false) html+='<button class="pay-btn pay-mada" onclick="doSubmit(\'mada\')">💳 مدى</button>';
-  if(ss.cash!==false){
-    var ct=ss.cashType||'both';
-    if(ct==='cash'||ct==='both') html+='<button class="pay-btn pay-cash" onclick="doSubmit(\'cash\')">💵 كاش</button>';
-    if(ct==='network'||ct==='both') html+='<button class="pay-btn pay-net" onclick="doSubmit(\'network\')">شبكة</button>';
+  var formWrap=document.getElementById('moyasar-form-wrap');
+  var methods=document.getElementById('pay-methods');
+  var hasElectronic=(ss.mada!==false||ss.applePay!==false);
+
+  if(hasElectronic && typeof Moyasar !== 'undefined'){
+    // Show Moyasar form
+    if(formWrap) formWrap.style.display='block';
+    // Build methods
+    var moyMethods=['creditcard'];
+    if(ss.applePay!==false) moyMethods.push('applepay');
+    // Clear old form
+    var formEl=document.querySelector('.mysr-form');
+    if(formEl) formEl.innerHTML='';
+    moyasarInitialized=false;
+    // Cash button below
+    if(methods){
+      methods.style.display='block';
+      if(ss.cash!==false){
+        var ct=ss.cashType||'both';
+        var cashHtml='<div style="text-align:center;margin:8px 0;font-size:12px;color:#8B7355">— أو —</div>';
+        if(ct==='cash'||ct==='both') cashHtml+='<button class="pay-btn pay-cash" onclick="showCashOptions()">💵 الدفع عند الاستلام</button>';
+        methods.innerHTML=cashHtml;
+      } else {
+        methods.innerHTML='';
+      }
+    }
+    setTimeout(function(){
+      if(moyasarInitialized) return;
+      moyasarInitialized=true;
+      try{
+        Moyasar.init({
+          element: '.mysr-form',
+          amount: total*100,
+          currency: 'SAR',
+          description: 'طلب من '+(storeInfo.name||'توصيل الحي'),
+          publishable_api_key: MOYASAR_KEY,
+          methods: moyMethods,
+          supported_networks: ['mada','visa','mastercard','amex'],
+          on_completed: function(payment){
+            if(payment&&payment.status==='paid'){
+              var src=payment.source||{};
+              var method=src.type==='applepay'?'apple_pay':(src.company==='mada'?'mada':'visa');
+              doSubmit(method);
+            }
+          },
+          on_failed: function(payment,error){
+            showNotif('❌ فشل الدفع — حاول مرة أخرى');
+          }
+        });
+      }catch(e){
+        console.error('Moyasar init error:',e);
+        // Fallback to buttons
+        if(formWrap) formWrap.style.display='none';
+        if(methods){
+          var html='';
+          if(ss.applePay!==false) html+='<button class="pay-btn pay-apple" onclick="doSubmit(\'apple_pay\')">🍎 Apple Pay</button>';
+          if(ss.mada!==false) html+='<button class="pay-btn pay-mada" onclick="doSubmit(\'mada\')">💳 مدى</button>';
+          if(ss.cash!==false) html+='<button class="pay-btn pay-cash" onclick="showCashOptions()">💵 الدفع عند الاستلام</button>';
+          methods.innerHTML=html;
+          methods.style.display='block';
+        }
+      }
+    },400);
+  } else {
+    // No electronic or Moyasar not loaded - show buttons
+    if(formWrap) formWrap.style.display='none';
+    if(methods) methods.style.display='block';
+    var html='';
+    if(ss.applePay!==false) html+='<button class="pay-btn pay-apple" onclick="doSubmit(\'apple_pay\')">🍎 Apple Pay</button>';
+    if(ss.mada!==false) html+='<button class="pay-btn pay-mada" onclick="doSubmit(\'mada\')">💳 مدى</button>';
+    if(ss.cash!==false) html+='<button class="pay-btn pay-cash" onclick="showCashOptions()">💵 الدفع عند الاستلام</button>';
+    if(!html) html='<button class="pay-btn pay-cash" onclick="showCashOptions()">💵 الدفع عند الاستلام</button>';
+    if(methods) methods.innerHTML=html;
   }
-  if(!html) html='<button class="pay-btn pay-cash" onclick="doSubmit(\'cash\')">💵 كاش</button>';
-  document.getElementById('pay-methods').innerHTML=html;
 }
+
 
 // ── CASH OPTIONS ──
 function showCashOptions(){
