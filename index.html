@@ -1049,7 +1049,11 @@ function renderPayMethods(){
           country_code: 'SA',
           supported_networks: ['mada','visa','mastercard','amex'],
           callback_url: 'https://alhay.app',
-          apple_pay_validation_url: APPLE_PAY_VALIDATE_URL,
+          apple_pay: {
+            country: 'SA',
+            label: 'توصيل الحي',
+            validate_merchant_url: APPLE_PAY_VALIDATE_URL,
+          },
           on_completed: function(payment){
             if(payment&&payment.status==='paid'){
               var src=payment.source||{};
