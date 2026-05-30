@@ -416,6 +416,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 
 <script>
 var MOYASAR_KEY='pk_test_RE62uyizAra24TL5NWTmWtAGWrX8Bb49DroYiFmh';
+var APPLE_PAY_VALIDATE_URL='https://alhay-api.vercel.app/api/apple-pay-validate';
 var moyasarInitialized=false;
 
 var FB_CFG={
@@ -1016,8 +1017,7 @@ function renderPayMethods(){
     if(formWrap) formWrap.style.display='block';
     // Apple Pay methods only if enabled
     var moyMethods=['creditcard'];
-    // Note: applepay requires merchant validation server - skip for now
-    // if(ss.applePay!==false) moyMethods.push('applepay');
+    if(ss.applePay!==false) moyMethods.push('applepay');
 
     var formEl=document.querySelector('.mysr-form');
     if(formEl) formEl.innerHTML='';
@@ -1049,6 +1049,7 @@ function renderPayMethods(){
           country_code: 'SA',
           supported_networks: ['mada','visa','mastercard','amex'],
           callback_url: 'https://alhay.app',
+          apple_pay_validation_url: APPLE_PAY_VALIDATE_URL,
           on_completed: function(payment){
             if(payment&&payment.status==='paid'){
               var src=payment.source||{};
