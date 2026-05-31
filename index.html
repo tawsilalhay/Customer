@@ -1136,7 +1136,7 @@ function doSubmit(payMethod){
     cart=[];updateBadge();renderItems();houseImg=null;clearImg();
     var n=document.getElementById('cart-notes');if(n)n.value='';
     go('status');
-    document.getElementById('st-num').textContent='#'+currentOrderId.slice(-4).toUpperCase();
+    document.getElementById('st-num').textContent=currentOrderId;
     watchOrder(currentOrderId);
   });
 }
@@ -1243,7 +1243,7 @@ function renderMyOrders(){
         +'<span style="font-weight:700">'+(it.price*it.qty)+' ر</span></div>';
     });
     html+='<div class="my-order-card">'
-      +'<div class="my-order-hdr"><span class="my-order-id">#'+o.id.slice(-4).toUpperCase()+'</span>'
+      +'<div class="my-order-hdr"><span class="my-order-id">'+o.id+'</span>'
       +'<span class="my-order-status" style="'+sc+'">'+st+'</span></div>'
       +'<div style="font-size:13px;font-weight:800;color:#2D5016;margin-bottom:2px">'+san(o.storeName||'المتجر')+'</div>'
       +'<div style="font-size:11px;color:#aaa;margin-bottom:8px">'+fmtT(o.createdAt)+'</div>'
@@ -1305,7 +1305,7 @@ function openChat(oid,sid){
   custChatLastSeen[oid]=Date.now(); saveChatSeen();
   custChatUnread[oid]=0;
   sid=sid||currentStoreId||'naseem';
-  document.getElementById('chat-sub').textContent='طلب #'+oid.slice(-4).toUpperCase();
+  document.getElementById('chat-sub').textContent='طلب '+oid;
   document.getElementById('chat-overlay').style.display='flex';
   var o=myOrders.find(function(x){return x.id===oid;})||{};
   var area=document.getElementById('chat-input-area');
@@ -1370,7 +1370,7 @@ function showRating(oid){
   document.getElementById('rating-note').value='';
   document.getElementById('rating-submit').disabled=true;
   document.querySelectorAll('.star').forEach(function(s){s.classList.remove('lit');});
-  document.getElementById('rating-order-num').textContent='طلب #'+oid.slice(-4).toUpperCase();
+  document.getElementById('rating-order-num').textContent='طلب '+oid;
   document.getElementById('rating-overlay').style.display='flex';
 }
 function closeRating(){document.getElementById('rating-overlay').style.display='none';ratingOid=null;}
