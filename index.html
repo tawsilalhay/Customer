@@ -349,6 +349,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
   <div class="hdr"><span class="hdr-title">تتبع طلبك</span></div>
   <div class="status-wrap">
     <div class="order-num" id="st-num">#0000</div>
+    <div id="st-eta" style="display:none;background:#2D5016;color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;text-align:center;width:100%"></div>
     <div class="status-card" id="st-card"></div>
     <div class="status-btns">
       <button class="st-btn st-btn-green" onclick="go('menu')">🍽️ المنيو</button>
@@ -417,6 +418,16 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 <script>
 var MOYASAR_KEY='pk_test_RE62uyizAra24TL5NWTmWtAGWrX8Bb49DroYiFmh';
 var APPLE_PAY_VALIDATE_URL='https://alhay-api.vercel.app/api/apple-pay-validate';
+
+// توليد رقم طلب: 3 أحرف + 3 أرقام
+function genOrderNum(){
+  var chars='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  var nums='0123456789';
+  var r='';
+  for(var i=0;i<3;i++) r+=chars[Math.floor(Math.random()*chars.length)];
+  for(var j=0;j<3;j++) r+=nums[Math.floor(Math.random()*nums.length)];
+  return r;
+}
 var moyasarInitialized=false;
 
 var FB_CFG={
@@ -1017,7 +1028,8 @@ function renderPayMethods(){
     if(formWrap) formWrap.style.display='block';
     // Apple Pay methods only if enabled
     var moyMethods=['creditcard'];
-    if(ss.applePay!==false) moyMethods.push('applepay');
+    // Note: applepay requires merchant validation server - skip for now
+    // if(ss.applePay!==false) moyMethods.push('applepay');
 
     var formEl=document.querySelector('.mysr-form');
     if(formEl) formEl.innerHTML='';
@@ -1049,11 +1061,6 @@ function renderPayMethods(){
           country_code: 'SA',
           supported_networks: ['mada','visa','mastercard','amex'],
           callback_url: 'https://alhay.app',
-          apple_pay: {
-            country: 'SA',
-            label: 'توصيل الحي',
-            validate_merchant_url: APPLE_PAY_VALIDATE_URL,
-          },
           on_completed: function(payment){
             if(payment&&payment.status==='paid'){
               var src=payment.source||{};
@@ -1120,12 +1127,14 @@ function doSubmit(payMethod){
   var phone=isPickup?document.getElementById('p-phone').value.trim():document.getElementById('f-phone').value.trim();
   var notes=document.getElementById('cart-notes').value.trim();
   var mapsUrl=selLat?'https://www.google.com/maps?q='+selLat+','+selLng:null;
+  var orderNum=genOrderNum();
   var order={
     customerName:name,customerPhone:phone,name:name,phone:phone,
     lat:selLat||null,lng:selLng||null,mapsUrl:mapsUrl,
     items:cart,subtotal:getSub(),deliveryFee:getDelFee(),total:getTotal(),
     orderType:orderType,payMethod:payMethod,notes:notes||null,
-    houseImage:houseImg||null,status:'pending',createdAt:Date.now()
+    houseImage:houseImg||null,status:'pending',createdAt:Date.now(),
+    orderNum:orderNum
   };
   var ref=db.ref('stores/'+currentStoreId+'/orders').push();
   currentOrderId=ref.key;
@@ -1135,7 +1144,7 @@ function doSubmit(payMethod){
     cart=[];updateBadge();renderItems();houseImg=null;clearImg();
     var n=document.getElementById('cart-notes');if(n)n.value='';
     go('status');
-    document.getElementById('st-num').textContent='#'+currentOrderId.slice(-4).toUpperCase();
+    document.getElementById('st-num').textContent='#'+orderNum;
     watchOrder(currentOrderId);
   });
 }
@@ -1143,9 +1152,17 @@ function doSubmit(payMethod){
 // ── STATUS ──
 var STEPS=[{key:'accepted',icon:'✅',label:'تم الاستلام وجاري التجهيز'},{key:'on_the_way',icon:'🛵',label:'في الطريق إليك'},{key:'delivered',icon:'🎉',label:'تم التسليم'}];
 var STEPS_PU=[{key:'accepted',icon:'✅',label:'تم الاستلام وجاري التجهيز'},{key:'delivered',icon:'🎉',label:'جاهز للاستلام'}];
-function renderStatus(status,ts){
+function renderStatus(status,ts,eta){
   var card=document.getElementById('st-card'); if(!card) return;
   ts=ts||{};
+  // عرض وقت التوصيل المتوقع
+  var etaEl=document.getElementById('st-eta');
+  if(etaEl){
+    if(eta&&status!=='delivered'&&status!=='rejected'){
+      etaEl.style.display='block';
+      etaEl.innerHTML='⏱️ وقت التوصيل المتوقع: <b>'+eta+' دقيقة</b>';
+    } else { etaEl.style.display='none'; }
+  }
   if(status==='rejected'){card.innerHTML='<div class="rejected-msg">❌ تم رفض الطلب<br><small>نعتذر، يرجى التواصل معنا</small></div>';return;}
   var steps=orderType==='pickup'?STEPS_PU:STEPS;
   var curIdx=0; steps.forEach(function(s,i){if(s.key===status)curIdx=i;});
@@ -1164,8 +1181,9 @@ function watchOrder(id){
   if(!db||!currentStoreId) return;
   db.ref('stores/'+currentStoreId+'/orders/'+id).on('value',function(snap){
     var d=snap.val(); if(!d) return;
-    renderStatus(d.status,d.timestamps||{});
-    document.getElementById('st-num').textContent='#'+id.slice(-4).toUpperCase();
+    renderStatus(d.status,d.timestamps||{},d.eta||null);
+    var num=d.orderNum||id.slice(-4).toUpperCase();
+    document.getElementById('st-num').textContent='#'+num;
   });
 }
 
@@ -1231,7 +1249,7 @@ function renderMyOrders(){
         +'<span style="font-weight:700">'+(it.price*it.qty)+' ر</span></div>';
     });
     html+='<div class="my-order-card">'
-      +'<div class="my-order-hdr"><span class="my-order-id">#'+o.id.slice(-4).toUpperCase()+'</span>'
+      +'<div class="my-order-hdr"><span class="my-order-id">#'+(o.orderNum||o.id.slice(-4).toUpperCase())+'</span>'
       +'<span class="my-order-status" style="'+sc+'">'+st+'</span></div>'
       +'<div style="font-size:13px;font-weight:800;color:#2D5016;margin-bottom:2px">'+san(o.storeName||'المتجر')+'</div>'
       +'<div style="font-size:11px;color:#aaa;margin-bottom:8px">'+fmtT(o.createdAt)+'</div>'
@@ -1253,7 +1271,13 @@ function renderMyOrders(){
 }
 function trackOrder(id,sid){
   currentOrderId=id; if(sid) currentStoreId=sid;
-  document.getElementById('st-num').textContent='#'+id.slice(-4).toUpperCase();
+  // تحميل رقم الطلب من Firebase
+  if(db&&currentStoreId){
+    db.ref('stores/'+currentStoreId+'/orders/'+id+'/orderNum').once('value',function(s){
+      var num=s.val()||id.slice(-4).toUpperCase();
+      document.getElementById('st-num').textContent='#'+num;
+    });
+  }
   watchOrder(id); go('status');
 }
 
