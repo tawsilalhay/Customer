@@ -186,6 +186,11 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 .rating-note{width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid #E8DFD0;font-family:inherit;font-size:13px;color:#1A0A00;resize:none;height:75px;margin-bottom:12px;direction:rtl;outline:none}
 .rating-submit{background:#2D5016;color:#fff;border:none;border-radius:12px;padding:11px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;width:100%}
 .rating-submit:disabled{opacity:.4;cursor:not-allowed}
+/* ETA TIMER */
+.eta-timer{background:linear-gradient(135deg,#2D5016,#4a7c1f);border-radius:12px;padding:12px;text-align:center;width:100%}
+.eta-timer-label{font-size:11px;color:rgba(255,255,255,.8);margin-bottom:4px}
+.eta-timer-num{font-size:32px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+.eta-timer-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px}
 /* MISC */
 .notif{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:#0891b2;color:#fff;padding:11px 18px;border-radius:12px;font-weight:700;font-size:13px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.2);text-align:center}
 .empty-msg{text-align:center;color:#8B7355;padding:40px 20px;font-size:14px}
@@ -459,6 +464,7 @@ var custChatUnread={};
 var custChatLastSeen={};
 var currentChatId=null;
 var selStars=0;
+var etaTimerInterval=null;
 var ratingOid=null;
 
 // ── UTILS ──
@@ -1152,6 +1158,26 @@ function doSubmit(payMethod){
 // ── STATUS ──
 var STEPS=[{key:'accepted',icon:'✅',label:'تم الاستلام وجاري التجهيز'},{key:'on_the_way',icon:'🛵',label:'في الطريق إليك'},{key:'delivered',icon:'🎉',label:'تم التسليم'}];
 var STEPS_PU=[{key:'accepted',icon:'✅',label:'تم الاستلام وجاري التجهيز'},{key:'delivered',icon:'🎉',label:'جاهز للاستلام'}];
+function startEtaTimer(acceptedAt, etaMinutes, elementId){
+  var endTime = acceptedAt + (etaMinutes * 60 * 1000);
+  if(etaTimerInterval) clearInterval(etaTimerInterval);
+  function update(){
+    var el=document.getElementById(elementId); if(!el) return;
+    var remaining=Math.max(0,endTime-Date.now());
+    var mins=Math.floor(remaining/60000);
+    var secs=Math.floor((remaining%60000)/1000);
+    var eta=new Date(endTime).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+    el.innerHTML='<div class="eta-timer">'
+      +'<div class="eta-timer-label">⏱️ الوقت المتبقي للتوصيل</div>'
+      +'<div class="eta-timer-num">'+(remaining>0?(mins+':'+(secs<10?'0':'')+secs):'وصل قريباً 🛵')+'</div>'
+      +'<div class="eta-timer-sub">الوصول المتوقع: '+eta+'</div>'
+      +'</div>';
+    if(remaining<=0) clearInterval(etaTimerInterval);
+  }
+  update();
+  etaTimerInterval=setInterval(update,1000);
+}
+
 function renderStatus(status,ts,eta){
   var card=document.getElementById('st-card'); if(!card) return;
   ts=ts||{};
@@ -1160,8 +1186,15 @@ function renderStatus(status,ts,eta){
   if(etaEl){
     if(eta&&status!=='delivered'&&status!=='rejected'){
       etaEl.style.display='block';
-      etaEl.innerHTML='⏱️ وقت التوصيل المتوقع: <b>'+eta+' دقيقة</b>';
-    } else { etaEl.style.display='none'; }
+      if(ts&&ts.accepted){
+        startEtaTimer(ts.accepted, eta, 'st-eta');
+      } else {
+        etaEl.innerHTML='<div class="eta-timer"><div class="eta-timer-label">⏱️ وقت التوصيل المتوقع</div><div class="eta-timer-num">'+eta+' دقيقة</div></div>';
+      }
+    } else {
+      etaEl.style.display='none';
+      if(etaTimerInterval){clearInterval(etaTimerInterval);etaTimerInterval=null;}
+    }
   }
   if(status==='rejected'){card.innerHTML='<div class="rejected-msg">❌ تم رفض الطلب<br><small>نعتذر، يرجى التواصل معنا</small></div>';return;}
   var steps=orderType==='pickup'?STEPS_PU:STEPS;
@@ -1273,6 +1306,29 @@ function renderMyOrders(){
       +'</div>';
   });
   el.innerHTML=html;
+  // تشغيل مؤقتات طلباتي
+  myOrders.forEach(function(o){
+    if(o.estimatedDelivery&&o.status!=='delivered'&&o.status!=='rejected'){
+      var elId='eta-my-'+o.id;
+      var endTime=o.estimatedDelivery;
+      (function(eid,et){
+        function upd(){
+          var e=document.getElementById(eid); if(!e) return;
+          var rem=Math.max(0,et-Date.now());
+          var mins=Math.floor(rem/60000);
+          var secs=Math.floor((rem%60000)/1000);
+          var eta=new Date(et).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+          e.innerHTML='<div style="background:linear-gradient(135deg,#2D5016,#4a7c1f);border-radius:8px;padding:8px;text-align:center;margin-bottom:2px">'
+            +'<div style="font-size:10px;color:rgba(255,255,255,.8)">⏱️ الوقت المتبقي</div>'
+            +'<div style="font-size:20px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums">'+(rem>0?(mins+':'+(secs<10?'0':'')+secs):'وصل قريباً 🛵')+'</div>'
+            +'<div style="font-size:10px;color:rgba(255,255,255,.7)">الوصول: '+eta+'</div>'
+            +'</div>';
+        }
+        upd();
+        setInterval(upd,1000);
+      })(elId,endTime);
+    }
+  });
 }
 function trackOrder(id,sid){
   currentOrderId=id; if(sid) currentStoreId=sid;
