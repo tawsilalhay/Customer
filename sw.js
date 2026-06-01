@@ -1,26 +1,15 @@
-var CACHE_NAME = 'alhay-v1';
-var urlsToCache = [
-  '/',
-  '/index.html'
-];
+var CACHE_NAME = 'alhay-v2';
 
-// Install
+// Install - لا نخزن شيء عشان ما يتعارض مع Firebase
 self.addEventListener('install', function(e) {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(urlsToCache);
-    })
-  );
   self.skipWaiting();
 });
 
-// Activate
+// Activate - نمسح كل الكاش القديم
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
-      return Promise.all(keys.filter(function(k) {
-        return k !== CACHE_NAME;
-      }).map(function(k) {
+      return Promise.all(keys.map(function(k) {
         return caches.delete(k);
       }));
     })
@@ -28,13 +17,9 @@ self.addEventListener('activate', function(e) {
   self.clients.claim();
 });
 
-// Fetch - network first
+// Fetch - network only (لا نخزن شيء)
 self.addEventListener('fetch', function(e) {
-  e.respondWith(
-    fetch(e.request).catch(function() {
-      return caches.match(e.request);
-    })
-  );
+  e.respondWith(fetch(e.request));
 });
 
 // Push Notifications
@@ -48,11 +33,7 @@ self.addEventListener('push', function(e) {
     dir: 'rtl',
     lang: 'ar',
     vibrate: [200, 100, 200],
-    data: { url: data.url || '/' },
-    actions: [
-      { action: 'open', title: 'عرض الطلب' },
-      { action: 'close', title: 'إغلاق' }
-    ]
+    data: { url: data.url || '/' }
   };
   e.waitUntil(self.registration.showNotification(title, options));
 });
@@ -60,7 +41,5 @@ self.addEventListener('push', function(e) {
 // Notification click
 self.addEventListener('notificationclick', function(e) {
   e.notification.close();
-  if(e.action === 'open' || !e.action) {
-    e.waitUntil(clients.openWindow(e.notification.data.url || '/'));
-  }
+  e.waitUntil(clients.openWindow(e.notification.data.url || '/'));
 });
