@@ -1,6 +1,6 @@
 {
   "name": "توصيل الحي",
-  "short_name": "الحي",
+  "short_name": "توصيل الحي",
   "description": "اطلب من متاجر حيك المفضلة",
   "start_url": "/",
   "display": "standalone",
