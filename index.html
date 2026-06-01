@@ -619,10 +619,7 @@ function startApp(){
       updateActiveBadge();
       checkPendingRatings();
     },2000);
-    // تسجيل SW بعد ما Firebase يتصل
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('/sw.js').catch(function(){});
-    }
+
     restoreNav();
   }catch(e){
     var el=document.getElementById('store-list');
