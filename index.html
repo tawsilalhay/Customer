@@ -1177,15 +1177,33 @@ function doSubmit(payMethod){
   };
   var ref=db.ref('stores/'+currentStoreId+'/orders').push();
   currentOrderId=ref.key;
-  ref.set(order,function(err){
-    if(err){alert('خطأ في إرسال الطلب');return;}
-    addMyOrder(currentOrderId,order);
+  // حفظ Player ID مع الطلب
+  if(window.OneSignal){
+    OneSignal.push(function(){
+      OneSignal.getUserId(function(playerId){
+        if(playerId) order.playerId=playerId;
+        ref.set(order,function(err){
+          if(err){alert('خطأ في إرسال الطلب');return;}
+          addMyOrder(currentOrderId,order);
     cart=[];updateBadge();renderItems();houseImg=null;clearImg();
     var n=document.getElementById('cart-notes');if(n)n.value='';
     go('status');
     document.getElementById('st-num').textContent='#'+orderNum;
     watchOrder(currentOrderId);
-  });
+        });
+      });
+    });
+  } else {
+    ref.set(order,function(err){
+      if(err){alert('خطأ في إرسال الطلب');return;}
+      addMyOrder(currentOrderId,order);
+      cart=[];updateBadge();renderItems();houseImg=null;clearImg();
+      var n=document.getElementById('cart-notes');if(n)n.value='';
+      go('status');
+      document.getElementById('st-num').textContent='#'+orderNum;
+      watchOrder(currentOrderId);
+    });
+  }
 }
 
 // ── STATUS ──
@@ -1507,6 +1525,32 @@ function submitRating(){
       markRated(ratingOid); closeRating(); showNotif('شكراً على تقييمك! ⭐');
       checkPendingRatings();
     }
+  });
+}
+
+// ── حفظ OneSignal Player ID في Firebase ──
+function savePlayerIdToFirebase(playerId, phone){
+  if(!db||!playerId) return;
+  db.ref('push_tokens/'+playerId.replace(/[.#$[\]]/g,'_')).set({
+    playerId: playerId,
+    phone: phone||null,
+    updatedAt: Date.now()
+  });
+}
+
+function initOneSignalPlayerSave(){
+  if(!window.OneSignal) return;
+  OneSignal.push(function(){
+    OneSignal.getUserId(function(playerId){
+      if(playerId){
+        // احفظ مع رقم الجوال لو موجود
+        var phone = null;
+        var savedOrders = [];
+        try{ savedOrders = JSON.parse(localStorage.getItem('my_orders_v3')||'[]'); }catch(e){}
+        if(savedOrders.length) phone = savedOrders[0].phone||null;
+        savePlayerIdToFirebase(playerId, phone);
+      }
+    });
   });
 }
 
