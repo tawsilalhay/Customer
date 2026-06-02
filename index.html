@@ -7,12 +7,6 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>توصيل الحي</title>
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#2D5016">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="توصيل الحي">
-<link rel="apple-touch-icon" href="/icon-192.png">
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <script src="https://cdn.moyasar.com/mpf/1.14.0/moyasar.js"></script>
@@ -201,17 +195,6 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 .notif{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:#0891b2;color:#fff;padding:11px 18px;border-radius:12px;font-weight:700;font-size:13px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.2);text-align:center}
 .empty-msg{text-align:center;color:#8B7355;padding:40px 20px;font-size:14px}
 </style>
-<script>
-// مسح Service Worker القديم فوراً
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    regs.forEach(function(reg){ reg.unregister(); });
-  });
-  caches.keys().then(function(keys){
-    keys.forEach(function(k){ caches.delete(k); });
-  });
-}
-</script>
 </head>
 <body>
 <div class="app">
@@ -1480,71 +1463,13 @@ if(document.readyState==='loading'){
   startApp();
 }
 
-// ── PWA ──
-var deferredPrompt=null;
 
-// زر التثبيت
-window.addEventListener('beforeinstallprompt',function(e){
-  e.preventDefault();
-  deferredPrompt=e;
-  showInstallBanner();
-});
-
-function showInstallBanner(){
-  var existing=document.getElementById('install-banner');
-  if(existing) return;
-  var banner=document.createElement('div');
-  banner.id='install-banner';
-  banner.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:456px;background:#C9A84C;color:#1A0A00;border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,.2)';
-  banner.innerHTML='<div><div style="font-weight:800;font-size:13px">📲 أضف التطبيق لشاشتك الرئيسية</div><div style="font-size:11px;opacity:.8">تجربة أسرع وإشعارات فورية</div></div>'
-    +'<div style="display:flex;gap:8px">'
-    +'<button onclick="installApp()" style="background:#2D5016;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">تثبيت</button>'
-    +'<button onclick="document.getElementById('install-banner').remove()" style="background:rgba(0,0,0,.15);color:#1A0A00;border:none;border-radius:8px;padding:7px 10px;font-family:inherit;font-size:12px;cursor:pointer">✕</button>'
-    +'</div>';
-  document.body.appendChild(banner);
+// ═══ START THE APP ═══
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',startApp);
+} else {
+  startApp();
 }
-
-function installApp(){
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(function(result){
-    if(result.outcome==='accepted'){
-      var banner=document.getElementById('install-banner');
-      if(banner) banner.remove();
-    }
-    deferredPrompt=null;
-  });
-}
-
-// إشعارات Push
-function requestNotifPermission(){
-  if(!('Notification' in window)) return;
-  if(Notification.permission==='default'){
-    Notification.requestPermission().then(function(perm){
-      if(perm==='granted') console.log('إشعارات مفعلة ✅');
-    });
-  }
-}
-setTimeout(requestNotifPermission, 3000);
-
-// تثبيت على iPhone (Add to Home Screen hint)
-window.addEventListener('load',function(){
-  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  var isStandalone=window.navigator.standalone;
-  if(isIOS&&!isStandalone){
-    setTimeout(function(){
-      var existing=document.getElementById('ios-banner');
-      if(existing) return;
-      var banner=document.createElement('div');
-      banner.id='ios-banner';
-      banner.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:456px;background:#C9A84C;color:#1A0A00;border-radius:12px;padding:12px 14px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,.2);text-align:center';
-      banner.innerHTML='<div style="font-weight:800;font-size:13px;margin-bottom:4px">📲 أضف التطبيق لشاشتك الرئيسية</div>'
-        +'<div style="font-size:12px">اضغط <b>⬆️ مشاركة</b> ثم <b>إضافة للشاشة الرئيسية</b></div>'
-        +'<button onclick="document.getElementById('ios-banner').remove()" style="margin-top:8px;background:rgba(0,0,0,.15);border:none;border-radius:8px;padding:5px 14px;font-family:inherit;font-size:12px;cursor:pointer">فهمت ✓</button>';
-      document.body.appendChild(banner);
-    },4000);
-  }
-});
 </script>
 </body>
 </html>
