@@ -201,6 +201,19 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 .notif{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:#0891b2;color:#fff;padding:11px 18px;border-radius:12px;font-weight:700;font-size:13px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.2);text-align:center}
 .empty-msg{text-align:center;color:#8B7355;padding:40px 20px;font-size:14px}
 </style>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "7ee1b5de-9b52-4026-a5e7-4b1e7087d787",
+      safari_web_id: "web.onesignal.auto.486fe890-0d3a-4b25-a01f-9ae2be714cd5",
+      notifyButton: {
+        enable: true,
+      },
+    });
+  });
+</script>
 </head>
 <body>
 <div class="app">
