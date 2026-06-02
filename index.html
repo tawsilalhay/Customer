@@ -490,6 +490,19 @@ var ratingOid=null;
 function san(s){if(!s)return'';return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtT(ts){if(!ts)return'';var d=new Date(ts);return d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});}
 function showNotif(msg){var el=document.getElementById('notif');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},3500);}
+
+function playChatSound(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var o=ctx.createOscillator();
+    var g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=880;o.type='sine';
+    g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.3);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.3);
+  }catch(e){}
+}
 function validPhone(p){var v=p.replace(/\s/g,'');return/^05\d{8}$/.test(v)||/^966\d{9}$/.test(v);}
 function checkPhone(inp,statusId){
   var v=inp.value.replace(/\s/g,'');
@@ -1261,11 +1274,29 @@ function watchAllMyOrders(){
       var st=d.status; if(!st) return;
       myOrders.forEach(function(mo){
         if(mo.id===o.id){
+          var prevStatus=mo.status;
           mo.status=st;
           if(st==='delivered'&&!mo.deliveredAt) mo.deliveredAt=Date.now();
-          // حفظ وقت التوصيل المتوقع
           if(d.eta&&d.timestamps&&d.timestamps.accepted){
             mo.estimatedDelivery=d.timestamps.accepted+(d.eta*60*1000);
+          }
+          // إشعار عند تغيير الحالة
+          if(prevStatus!==st){
+            var msgs={
+              accepted:'✅ طلبك تم استلامه وجاري التجهيز',
+              on_the_way:'🛵 طلبك في الطريق إليك!',
+              delivered:'🎉 تم تسليم طلبك!',
+              rejected:'❌ تم رفض طلبك'
+            };
+            if(msgs[st]){
+              showNotif(msgs[st]);
+              playChatSound();
+              if(navigator.vibrate) navigator.vibrate([300,100,300]);
+              // OneSignal إشعار
+              if(window.OneSignal){
+                OneSignal.User.addTag('last_status',st);
+              }
+            }
           }
         }
       });
@@ -1378,7 +1409,11 @@ function watchAllChats(){
       Object.keys(msgs).forEach(function(mid){var m=msgs[mid];if(m.from==='rest'&&m.at>lastSeen) unread++;});
       var prev=custChatUnread[o.id]||0;
       custChatUnread[o.id]=unread;
-      if(unread>prev&&currentChatId!==o.id) showNotif('💬 رسالة جديدة من المتجر');
+      if(unread>prev&&currentChatId!==o.id){
+        showNotif('💬 رسالة جديدة من المتجر');
+        playChatSound();
+        if(navigator.vibrate) navigator.vibrate([200,100,200]);
+      }
       if(currentChatId===o.id) loadChatMsgs(o.id,sid);
       else if(document.getElementById('s-myorders').classList.contains('active')) renderMyOrders();
     });
