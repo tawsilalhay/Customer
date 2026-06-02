@@ -13,8 +13,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="توصيل الحي">
 <link rel="apple-touch-icon" href="/icon-192.png">
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.7.0/firebase-app-compat.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.7.0/firebase-database-compat.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <script src="https://cdn.moyasar.com/mpf/1.14.0/moyasar.js"></script>
 <link rel="stylesheet" href="https://cdn.moyasar.com/mpf/1.14.0/moyasar.css">
 <style>
@@ -201,6 +201,17 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 .notif{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:#0891b2;color:#fff;padding:11px 18px;border-radius:12px;font-weight:700;font-size:13px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.2);text-align:center}
 .empty-msg{text-align:center;color:#8B7355;padding:40px 20px;font-size:14px}
 </style>
+<script>
+// مسح Service Worker القديم فوراً
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(reg){ reg.unregister(); });
+  });
+  caches.keys().then(function(keys){
+    keys.forEach(function(k){ caches.delete(k); });
+  });
+}
+</script>
 </head>
 <body>
 <div class="app">
