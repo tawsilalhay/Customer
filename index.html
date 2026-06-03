@@ -227,22 +227,6 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 </script>
 </head>
 <body>
-<!-- LOGIN SCREEN -->
-<div id="login-screen-overlay" style="display:none;position:fixed;inset:0;background:#F7F3EE;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
-  <img src="/icon-192.png" style="width:100px;height:100px;border-radius:22px;margin-bottom:12px;box-shadow:0 4px 16px rgba(0,0,0,.15)">
-  <div style="font-size:24px;font-weight:800;color:#2D5016;margin-bottom:4px">توصيل الحي</div>
-  <div style="font-size:13px;color:#8B7355;margin-bottom:32px;text-align:center">أطلب من متاجر حيك المفضلة</div>
-  <div style="background:#fff;border-radius:18px;padding:24px;width:100%;max-width:400px;border:1px solid #E8DFD0;box-shadow:0 4px 20px rgba(0,0,0,.08)">
-    <label style="font-size:12px;font-weight:700;color:#8B7355;margin-bottom:6px;display:block">اسمك الكريم</label>
-    <input id="login-name-inp" style="width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid #E8DFD0;font-family:inherit;font-size:16px;color:#1A0A00;outline:none;margin-bottom:16px;text-align:right;direction:rtl;box-sizing:border-box" placeholder="مثال: محمد">
-    <label style="font-size:12px;font-weight:700;color:#8B7355;margin-bottom:6px;display:block">رقم جوالك</label>
-    <input id="login-phone-inp" type="tel" style="width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid #E8DFD0;font-family:inherit;font-size:16px;color:#1A0A00;outline:none;margin-bottom:6px;text-align:right;direction:rtl;box-sizing:border-box" placeholder="05xxxxxxxx">
-    <div id="login-phone-status" style="font-size:11px;margin-bottom:16px;display:none"></div>
-    <button onclick="doLogin()" style="width:100%;padding:14px;background:#2D5016;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer">ابدأ الطلب 🛵</button>
-    <button onclick="skipLogin()" style="width:100%;padding:10px;background:transparent;color:#8B7355;border:none;font-family:inherit;font-size:13px;cursor:pointer;margin-top:8px">تخطي</button>
-  </div>
-</div>
-
 <div class="app">
 
 <!-- HOME -->
@@ -512,69 +496,6 @@ var currentChatId=null;
 var selStars=0;
 var etaTimerInterval=null;
 var ratingOid=null;
-
-// ── AUTH ──
-var currentUser = null;
-
-function checkAutoLogin(){
-  try{
-    var saved = localStorage.getItem('alhay_user');
-    if(saved){
-      currentUser = JSON.parse(saved);
-      hideLoginScreen();
-      return;
-    }
-  }catch(e){}
-  showLoginScreen();
-}
-
-function showLoginScreen(){
-  var el = document.getElementById('login-screen-overlay');
-  if(el) el.style.display='flex';
-}
-
-function hideLoginScreen(){
-  var el = document.getElementById('login-screen-overlay');
-  if(el) el.style.display='none';
-  if(currentUser){
-    // تعبئة البيانات المحفوظة
-    try{ localStorage.setItem('cust_name', currentUser.name); }catch(e){}
-    try{ localStorage.setItem('cust_phone', currentUser.phone); }catch(e){}
-  }
-}
-
-function doLogin(){
-  var name = document.getElementById('login-name-inp').value.trim();
-  var phone = document.getElementById('login-phone-inp').value.trim();
-  var status = document.getElementById('login-phone-status');
-  
-  if(!name){ alert('يرجى إدخال اسمك'); return; }
-  if(!validPhone(phone)){
-    if(status){ status.textContent='❌ رقم غير صحيح'; status.style.color='#dc2626'; status.style.display='block'; }
-    return;
-  }
-  
-  currentUser = {name: name, phone: phone};
-  try{ localStorage.setItem('alhay_user', JSON.stringify(currentUser)); }catch(e){}
-  
-  // حفظ في Firebase
-  if(db){
-    var key = phone.replace(/[^0-9]/g,'');
-    db.ref('users/'+key).set({name:name, phone:phone, updatedAt:Date.now()});
-  }
-  
-  hideLoginScreen();
-}
-
-function skipLogin(){
-  hideLoginScreen();
-}
-
-function logoutUser(){
-  currentUser = null;
-  try{ localStorage.removeItem('alhay_user'); }catch(e){}
-  showLoginScreen();
-}
 
 // ── UTILS ──
 function san(s){if(!s)return'';return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -1699,13 +1620,9 @@ function initOneSignalPlayerSave(){
 
 // ═══ START THE APP (after all functions defined) ═══
 if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',function(){
-    startApp();
-    setTimeout(checkAutoLogin, 1000);
-  });
+  document.addEventListener('DOMContentLoaded',startApp);
 } else {
   startApp();
-  setTimeout(checkAutoLogin, 1000);
 }
 
 
