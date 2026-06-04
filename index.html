@@ -1197,6 +1197,61 @@ function renderPayMethods(){
 
 
 
+// ── PAYLINK ──
+function payWithPayLink(){
+  if(!currentStoreId||!cart.length) return;
+  var isPickup=orderType==='pickup';
+  var name=isPickup?document.getElementById('p-name').value.trim():document.getElementById('f-name').value.trim();
+  var phone=isPickup?document.getElementById('p-phone').value.trim():document.getElementById('f-phone').value.trim();
+  var total=getTotal();
+  var orderNum=genOrderNum();
+
+  // إظهار تحميل
+  var methods=document.getElementById('pay-methods');
+  if(methods) methods.innerHTML='<div style="text-align:center;padding:20px;color:#2D5016;font-weight:700">⏳ جاري الاتصال بالدفع...</div>';
+
+  fetch('https://alhay-api.vercel.app/api/paylink',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      amount: total,
+      orderNumber: orderNum,
+      customerName: name,
+      customerPhone: phone,
+      callbackUrl: 'https://alhay.app'
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.url){
+      // حفظ بيانات الطلب قبل التحويل
+      var pendingOrder={
+        orderNum: orderNum,
+        name: name,
+        phone: phone,
+        items: cart,
+        subtotal: getSub(),
+        deliveryFee: getDelFee(),
+        total: total,
+        orderType: orderType,
+        lat: selLat,
+        lng: selLng,
+        storeId: currentStoreId
+      };
+      try{ sessionStorage.setItem('pending_order', JSON.stringify(pendingOrder)); }catch(e){}
+      // التحويل لصفحة الدفع
+      window.location.href = data.url;
+    } else {
+      if(methods) methods.innerHTML='<div style="color:#dc2626;text-align:center;padding:10px">❌ خطأ في الدفع، حاول مجدداً</div>';
+      setTimeout(renderPayMethods, 2000);
+    }
+  })
+  .catch(function(){
+    if(methods) methods.innerHTML='<div style="color:#dc2626;text-align:center;padding:10px">❌ تعذر الاتصال، تحقق من الإنترنت</div>';
+    setTimeout(renderPayMethods, 2000);
+  });
+}
+
 // ── CASH OPTIONS ──
 function showCashOptions(){
   var methods=document.getElementById('pay-methods');
