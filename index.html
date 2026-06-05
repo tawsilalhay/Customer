@@ -695,6 +695,33 @@ function startApp(){
     if(el) el.innerHTML='<div class="empty-stores">خطأ في الاتصال: '+e.message+'</div>';
   }
 }
+// ── HOURS CHECK ──
+var DAYS_KEY_C=['sun','mon','tue','wed','thu','fri','sat'];
+function checkStoreHours(settings){
+  var hours=settings?settings.hours:null;
+  if(!hours) return {open:true,deliveryOpen:true,openStr:'',closeStr:'',deliveryStr:''};
+  var now=new Date();
+  var dayKey=DAYS_KEY_C[now.getDay()];
+  var curMin=now.getHours()*60+now.getMinutes();
+  function tMin(t){if(!t) return 0;var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
+  function tStr(m){var h=Math.floor(m/60),mn=m%60,s=h>=12?'م':'ص';h=h>12?h-12:(h===0?12:h);return h+(mn>0?':'+('0'+mn).slice(-2):'')+' '+s;}
+  var dayH;
+  if(hours.sameEveryDay&&hours.unified){dayH={active:true,open:hours.unified.open,close:hours.unified.close};}
+  else if(hours.days&&hours.days[dayKey]){dayH=hours.days[dayKey];}
+  var isOpen=true,openStr='',closeStr='';
+  if(dayH){
+    if(dayH.active===false){isOpen=false;}
+    else{var oMin=tMin(dayH.open),cMin=tMin(dayH.close);isOpen=curMin>=oMin&&curMin<cMin;openStr=tStr(oMin);closeStr=tStr(cMin);}
+  }
+  var deliveryOpen=isOpen,deliveryStr='';
+  if(hours.delivery&&!hours.delivery.sameAsStore){
+    var dO=tMin(hours.delivery.open),dC=tMin(hours.delivery.close);
+    deliveryOpen=curMin>=dO&&curMin<dC;
+    deliveryStr=tStr(dO)+' - '+tStr(dC);
+  }
+  return{open:isOpen,deliveryOpen:deliveryOpen,openStr:openStr,closeStr:closeStr,deliveryStr:deliveryStr};
+}
+
 // ── HOME ──
 function renderHome(){
   var el=document.getElementById('store-list');
