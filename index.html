@@ -724,7 +724,7 @@ function renderHome(){
     if(info.status==='open'&&hoursNow.closeStr) hoursLabel='<span style="font-size:10px;color:#8B7355;margin-right:4px">'+(!isOpen&&hoursNow.openStr?'يفتح '+hoursNow.openStr:'حتى '+hoursNow.closeStr)+'</span>';
     var deliveryLabel='';
     if(isOpen&&hoursNow.deliveryStr) deliveryLabel='<div style="font-size:10px;color:#C9A84C;margin-top:2px">🛵 '+hoursNow.deliveryStr+'</div>';
-    html+='<div class="store-card" onclick="openStore(\''+sid+'\'"><div class="store-img">'
+    html+='<div class="store-card" data-sid="'+sid+'" onclick="openStore(this.dataset.sid)"><div class="store-img">'
       +(info.logo?'<img src="'+info.logo+'">':san(info.emoji||'🏪'))
       +'<span class="store-open-badge '+(isOpen?'badge-open':'badge-closed')+'">'+badgeText+'</span></div>'
       +'<div class="store-body"><div class="store-name">'+san(info.name||sid)+'</div>'
