@@ -699,7 +699,7 @@ function startApp(){
 var DAYS_KEY_C=['sun','mon','tue','wed','thu','fri','sat'];
 function checkStoreHours(settings){
   var hours=settings?settings.hours:null;
-  if(!hours) return {open:true,deliveryOpen:true,openStr:'',closeStr:'',deliveryStr:''};
+  if(!hours) return {open:true,deliveryOpen:true,openStr:'',closeStr:'',deliveryStr:'',workStr:''};
   var now=new Date();
   var dayKey=DAYS_KEY_C[now.getDay()];
   var curMin=now.getHours()*60+now.getMinutes();
@@ -708,18 +708,28 @@ function checkStoreHours(settings){
   var dayH;
   if(hours.sameEveryDay&&hours.unified){dayH={active:true,open:hours.unified.open,close:hours.unified.close};}
   else if(hours.days&&hours.days[dayKey]){dayH=hours.days[dayKey];}
-  var isOpen=true,openStr='',closeStr='';
+  var isOpen=true,openStr='',closeStr='',workStr='';
   if(dayH){
     if(dayH.active===false){isOpen=false;}
-    else{var oMin=tMin(dayH.open),cMin=tMin(dayH.close);isOpen=curMin>=oMin&&curMin<cMin;openStr=tStr(oMin);closeStr=tStr(cMin);}
+    else{
+      var oMin=tMin(dayH.open),cMin=tMin(dayH.close);
+      isOpen=curMin>=oMin&&curMin<cMin;
+      openStr=tStr(oMin); closeStr=tStr(cMin);
+      workStr=tStr(oMin)+' - '+tStr(cMin);
+    }
   }
-  var deliveryOpen=isOpen,deliveryStr='';
+  // ساعات التوصيل
+  var deliveryOpen=isOpen,deliveryStr='',deliveryOpenStr='',deliveryCloseStr='';
   if(hours.delivery&&!hours.delivery.sameAsStore){
     var dO=tMin(hours.delivery.open),dC=tMin(hours.delivery.close);
-    deliveryOpen=curMin>=dO&&curMin<dC;
+    deliveryOpen=isOpen&&(curMin>=dO&&curMin<dC);
+    deliveryOpenStr=tStr(dO); deliveryCloseStr=tStr(dC);
     deliveryStr=tStr(dO)+' - '+tStr(dC);
+  } else {
+    deliveryStr=workStr;
+    deliveryOpenStr=openStr; deliveryCloseStr=closeStr;
   }
-  return{open:isOpen,deliveryOpen:deliveryOpen,openStr:openStr,closeStr:closeStr,deliveryStr:deliveryStr};
+  return{open:isOpen,deliveryOpen:deliveryOpen,openStr:openStr,closeStr:closeStr,workStr:workStr,deliveryStr:deliveryStr,deliveryOpenStr:deliveryOpenStr,deliveryCloseStr:deliveryCloseStr};
 }
 
 // ── HOME ──
@@ -748,9 +758,12 @@ function renderHome(){
     var isOpen=(info.status==='open')&&hoursNow.open;
     var badgeText=isOpen?'مفتوح':'مغلق';
     var hoursLabel='';
-    if(info.status==='open'&&hoursNow.closeStr) hoursLabel='<span style="font-size:10px;color:#8B7355;margin-right:4px">'+(!isOpen&&hoursNow.openStr?'يفتح '+hoursNow.openStr:'حتى '+hoursNow.closeStr)+'</span>';
+    if(hoursNow.workStr){
+      if(!isOpen) hoursLabel='<div style="font-size:10px;color:#dc2626;margin-top:3px">خارج أوقات العمل • '+hoursNow.workStr+'</div>';
+      else hoursLabel='<div style="font-size:10px;color:#8B7355;margin-top:3px">أوقات العمل: '+hoursNow.workStr+'</div>';
+    }
     var deliveryLabel='';
-    if(isOpen&&hoursNow.deliveryStr) deliveryLabel='<div style="font-size:10px;color:#C9A84C;margin-top:2px">🛵 '+hoursNow.deliveryStr+'</div>';
+    if(hoursNow.deliveryStr) deliveryLabel='<div style="font-size:10px;color:'+(hoursNow.deliveryOpen?'#C9A84C':'#f87171')+';margin-top:2px">توصيل: '+hoursNow.deliveryStr+(hoursNow.deliveryOpen?'':' (مغلق)')+'</div>';
     html+='<div class="store-card" data-sid="'+sid+'" onclick="openStore(this.dataset.sid)"><div class="store-img">'
       +(info.logo?'<img src="'+info.logo+'">':san(info.emoji||'🏪'))
       +'<span class="store-open-badge '+(isOpen?'badge-open':'badge-closed')+'">'+badgeText+'</span></div>'
@@ -794,8 +807,8 @@ function openStore(sid){
     var _hNow=checkStoreHours(storeSettings);
     var _isOpen=(storeInfo.status==='open')&&_hNow.open;
     if(!_isOpen){
-      var _msg=storeInfo.name+' مغلق حالياً';
-      if(_hNow.openStr) _msg+=' — يفتح '+_hNow.openStr;
+      var _msg=storeInfo.name+' خارج أوقات العمل';
+      if(_hNow.workStr) _msg+=' • أوقات العمل: '+_hNow.workStr;
       _cBanner.textContent=_msg;
       _cBanner.style.display='block';
     } else {
@@ -1094,6 +1107,16 @@ function cartQty(key,delta){
 }
 function proceed(){
   if(!cart.length) return;
+  // فحص ساعات التوصيل
+  if(orderType==='delivery'){
+    var _pSt=storesData[currentStoreId]||{};
+    var _pHr=checkStoreHours(_pSt.settings||{});
+    if(!_pHr.deliveryOpen){
+      var _pMsg='عذراً، '+((_pSt.info||{}).name||'المتجر')+' خارج أوقات التوصيل';
+      if(_pHr.deliveryStr) _pMsg+=' - أوقات التوصيل: '+_pHr.deliveryStr;
+      alert(_pMsg); return;
+    }
+  }
   if(orderType==='pickup') go('pickup');
   else go('confirm');
 }
