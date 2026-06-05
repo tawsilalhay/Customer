@@ -529,84 +529,6 @@ var selStars=0;
 var etaTimerInterval=null;
 var ratingOid=null;
 
-// ── HOURS CHECK ──
-var DAYS_EN_C=['sun','mon','tue','wed','thu','fri','sat'];
-
-function checkStoreHours(settings){
-  var hours=settings.hours;
-  if(!hours) return {open:true, deliveryOpen:true, openStr:'', closeStr:'', deliveryStr:''};
-  
-  var now=new Date();
-  var dayKey=DAYS_EN_C[now.getDay()];
-  var curMin=now.getHours()*60+now.getMinutes();
-  
-  function timeToMin(t){if(!t) return 0;var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
-  function minToStr(m){var h=Math.floor(m/60),mn=m%60;var suffix=h>=12?'م':'ص';h=h>12?h-12:(h===0?12:h);return h+(mn>0?':'+('0'+mn).slice(-2):'')+' '+suffix;}
-  
-  // تحديد ساعات اليوم
-  var dayHours;
-  if(hours.sameEveryDay&&hours.unified){
-    dayHours={active:true,open:hours.unified.open,close:hours.unified.close};
-  } else if(hours.days&&hours.days[dayKey]){
-    dayHours=hours.days[dayKey];
-  }
-  
-  var isOpen=true, openStr='', closeStr='';
-  if(dayHours){
-    if(dayHours.active===false){isOpen=false;}
-    else{
-      var openMin=timeToMin(dayHours.open);
-      var closeMin=timeToMin(dayHours.close);
-      isOpen=curMin>=openMin&&curMin<closeMin;
-      openStr=minToStr(openMin);
-      closeStr=minToStr(closeMin);
-    }
-  }
-  
-  // ساعات التوصيل
-  var deliveryOpen=isOpen;
-  var deliveryStr='';
-  if(hours.delivery&&!hours.delivery.sameAsStore){
-    var dOpen=timeToMin(hours.delivery.open);
-    var dClose=timeToMin(hours.delivery.close);
-    deliveryOpen=curMin>=dOpen&&curMin<dClose;
-    deliveryStr=minToStr(dOpen)+' - '+minToStr(dClose);
-  }
-  
-  return {open:isOpen, deliveryOpen:deliveryOpen, openStr:openStr, closeStr:closeStr, deliveryStr:deliveryStr};
-}
-
-// ── HOURS CHECK ──
-var DAYS_KEY_C=['sun','mon','tue','wed','thu','fri','sat'];
-function checkStoreHours(settings){
-  var hours=settings?settings.hours:null;
-  if(!hours) return {open:true,deliveryOpen:true,openStr:'',closeStr:'',deliveryStr:''};
-  var now=new Date();
-  var dayKey=DAYS_KEY_C[now.getDay()];
-  var curMin=now.getHours()*60+now.getMinutes();
-  function tMin(t){if(!t) return 0;var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
-  function tStr(m){var h=Math.floor(m/60),mn=m%60,s=h>=12?'م':'ص';h=h>12?h-12:(h===0?12:h);return h+(mn>0?':'+('0'+mn).slice(-2):'')+' '+s;}
-  var dayH;
-  if(hours.sameEveryDay&&hours.unified){dayH={active:true,open:hours.unified.open,close:hours.unified.close};}
-  else if(hours.days&&hours.days[dayKey]){dayH=hours.days[dayKey];}
-  var isOpen=true,openStr='',closeStr='';
-  if(dayH){
-    if(dayH.active===false){isOpen=false;}
-    else{
-      var oMin=tMin(dayH.open),cMin=tMin(dayH.close);
-      isOpen=curMin>=oMin&&curMin<cMin;
-      openStr=tStr(oMin); closeStr=tStr(cMin);
-    }
-  }
-  var deliveryOpen=isOpen,deliveryStr='';
-  if(hours.delivery&&!hours.delivery.sameAsStore){
-    var dO=tMin(hours.delivery.open),dC=tMin(hours.delivery.close);
-    deliveryOpen=curMin>=dO&&curMin<dC;
-    deliveryStr=tStr(dO)+' - '+tStr(dC);
-  }
-  return{open:isOpen,deliveryOpen:deliveryOpen,openStr:openStr,closeStr:closeStr,deliveryStr:deliveryStr};
-}
-
 // ── UTILS ──
 function san(s){if(!s)return'';return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtT(ts){if(!ts)return'';var d=new Date(ts);return d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});}
@@ -817,6 +739,124 @@ function renderHome(){
   el.innerHTML=html;
 }
 
+// ── OPEN STORE ──
+function openStore(sid){
+  currentStoreId=sid;
+  cart=[];activeCat=null;
+  storeInfo={}; storeMenu={}; storeStock={}; storeSettings={}; storeZone=null;
+  if(!db) return;
+  db.ref('stores/'+sid).once('value',function(snap){
+    var st=snap.val()||{};
+    storeInfo=st.info||{};
+    storeMenu=st.categories||{};
+    storeStock=st.stock||{};
+    storeSettings=st.settings||{};
+    storeZone=st.delivery_zone||null;
+    var nameEl=document.getElementById('store-name-header');
+    if(nameEl) nameEl.textContent=(storeInfo.emoji||'🏪')+' '+storeInfo.name;
+    // بانر المغلق
+    var _cBanner=document.getElementById('_closed_banner');
+    if(!_cBanner){
+      _cBanner=document.createElement('div');
+      _cBanner.id='_closed_banner';
+      _cBanner.style.cssText='display:none;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:700;position:sticky;top:0;z-index:10';
+      var _mp=document.getElementById('page-menu');
+      if(_mp) _mp.insertBefore(_cBanner,_mp.firstChild);
+    }
+    var _hNow=checkStoreHours(storeSettings);
+    var _isOpen=(storeInfo.status==='open')&&_hNow.open;
+    if(!_isOpen){
+      var _msg=storeInfo.name+' مغلق حالياً';
+      if(_hNow.openStr) _msg+=' — يفتح '+_hNow.openStr;
+      _cBanner.textContent=_msg;
+      _cBanner.style.display='block';
+    } else {
+      _cBanner.style.display='none';
+    }
+    renderCats();
+    go('menu');
+  });
+}
+
+// ── MENU RENDER ──
+function renderCats(){
+  var tw=document.getElementById('tabs-wrap'); if(!tw) return;
+  var cats=Object.keys(storeMenu);
+  if(!cats.length){tw.innerHTML='';renderItems();return;}
+  var html='';
+  cats.forEach(function(cid){
+    var cat=storeMenu[cid]||{};
+    html+='<button class="cat-pill'+(activeCat===cid?' active':'')+'" data-cid="'+cid+'" onclick="selectCat(this.dataset.cid)">'+san(cat.name||cid)+'</button>';
+  });
+  tw.innerHTML=html;
+  if(!activeCat&&cats.length) activeCat=cats[0];
+  renderItems();
+}
+
+function selectCat(cid){
+  activeCat=cid;
+  document.querySelectorAll('.cat-pill').forEach(function(b){b.classList.toggle('active',b.textContent===((storeMenu[cid]||{}).name||cid));});
+  renderItems();
+}
+
+function renderItems(){
+  var iw=document.getElementById('items-wrap'); if(!iw) return;
+  var title=document.getElementById('menu-title');
+  if(title) title.textContent=(storeInfo.emoji||'🏪')+' '+(storeInfo.name||'');
+  if(!activeCat||!storeMenu[activeCat]){iw.innerHTML='<div style="text-align:center;padding:40px;color:#8B7355">اختر فئة</div>';return;}
+  var prods=storeMenu[activeCat].products||{};
+  var pids=Object.keys(prods);
+  if(!pids.length){iw.innerHTML='<div style="text-align:center;padding:40px;color:#8B7355">لا توجد منتجات</div>';return;}
+  var html='';
+  pids.forEach(function(pid){
+    var p=prods[pid]||{};
+    var hasSizes=p.sizes&&p.sizes.length>0;
+    var stock=getStock(pid);
+    if(stock===0){return;}
+    html+='<div class="item-card">';
+    if(p.image) html+='<img src="'+san(p.image)+'" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px">';
+    html+='<div class="item-name">'+san(p.name||pid)+'</div>';
+    if(p.desc) html+='<div class="item-desc">'+san(p.desc)+'</div>';
+    if(hasSizes){
+      html+='<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">';
+      p.sizes.forEach(function(sz){
+        var skey=pid+'-'+sz.name;
+        var sq=getQty(skey);
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:#F7F3EE;border-radius:10px">'
+          +'<div><span style="font-size:13px;font-weight:600">'+san(sz.name)+'</span>'
+          +'<span style="font-size:12px;color:#C9A84C;margin-right:6px">'+sz.price+' ريال</span></div>'
+          +'<div class="qty-ctrl">'
+          +'<button class="qc-btn"'+(sq===0?' disabled':'')+' data-id="'+pid+'" data-sz="'+sz.name+'" data-pr="'+sz.price+'" data-d="-1" onclick="chQtyBtn(this)">−</button>'
+          +'<span class="qc-num">'+sq+'</span>'
+          +'<button class="qc-btn" data-id="'+pid+'" data-sz="'+sz.name+'" data-pr="'+sz.price+'" data-d="1" onclick="chQtyBtn(this)">+</button>'
+          +'</div></div>';
+      });
+      html+='</div>';
+    } else {
+      var q=getQty(pid);
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">'
+        +'<span class="item-price">'+(p.price||0)+' ريال</span>'
+        +'<div class="qty-ctrl">'
+        +'<button class="qc-btn"'+(q===0?' disabled':'')+' data-id="'+pid+'" data-sz="" data-pr="'+(p.price||0)+'" data-d="-1" onclick="chQtyBtn(this)">−</button>'
+        +'<span class="qc-num">'+q+'</span>'
+        +'<button class="qc-btn" data-id="'+pid+'" data-sz="" data-pr="'+(p.price||0)+'" data-d="1" onclick="chQtyBtn(this)">+</button>'
+        +'</div></div>';
+    }
+    html+='</div>';
+  });
+  iw.innerHTML=html||'<div style="text-align:center;padding:40px;color:#8B7355">لا توجد منتجات</div>';
+  updateFloatBar();
+}
+
+function getQty(key){
+  var f=cart.find(function(c){return c.key===key;});
+  return f?f.qty:0;
+}
+
+function getStock(pid){
+  return (storeStock&&storeStock[pid]!==undefined)?storeStock[pid]:99;
+}
+
 // ── EXTRAS ──
 function renderExtras(p,pid){
   if(!p.extras||!p.extras.length) return '';
@@ -832,6 +872,14 @@ function renderExtras(p,pid){
       +'</div></div>';
   });
   return html+'</div>';
+}
+
+function chQtyBtn(btn){
+  var id=btn.dataset.id;
+  var sz=btn.dataset.sz||null;
+  var pr=parseFloat(btn.dataset.pr)||0;
+  var d=parseInt(btn.dataset.d)||0;
+  chQty(id,sz,pr,d);
 }
 
 function chQty(id,size,price,delta){
