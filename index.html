@@ -778,7 +778,8 @@ function openStore(sid){
     storeMenu=st.categories||{};
     storeStock=st.stock||{};
     storeSettings=st.settings||{};
-    storeZone=st.delivery_zone||null;
+    var dz=st.delivery_zone||null;
+    storeZone=dz?(dz.points||dz):null;
     var nameEl=document.getElementById('store-name-header');
     if(nameEl) nameEl.textContent=(storeInfo.emoji||'🏪')+' '+storeInfo.name;
     // بانر المغلق
