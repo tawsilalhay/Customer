@@ -529,6 +529,53 @@ var selStars=0;
 var etaTimerInterval=null;
 var ratingOid=null;
 
+// ── HOURS CHECK ──
+var DAYS_EN_C=['sun','mon','tue','wed','thu','fri','sat'];
+
+function checkStoreHours(settings){
+  var hours=settings.hours;
+  if(!hours) return {open:true, deliveryOpen:true, openStr:'', closeStr:'', deliveryStr:''};
+  
+  var now=new Date();
+  var dayKey=DAYS_EN_C[now.getDay()];
+  var curMin=now.getHours()*60+now.getMinutes();
+  
+  function timeToMin(t){if(!t) return 0;var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
+  function minToStr(m){var h=Math.floor(m/60),mn=m%60;var suffix=h>=12?'م':'ص';h=h>12?h-12:(h===0?12:h);return h+(mn>0?':'+('0'+mn).slice(-2):'')+' '+suffix;}
+  
+  // تحديد ساعات اليوم
+  var dayHours;
+  if(hours.sameEveryDay&&hours.unified){
+    dayHours={active:true,open:hours.unified.open,close:hours.unified.close};
+  } else if(hours.days&&hours.days[dayKey]){
+    dayHours=hours.days[dayKey];
+  }
+  
+  var isOpen=true, openStr='', closeStr='';
+  if(dayHours){
+    if(dayHours.active===false){isOpen=false;}
+    else{
+      var openMin=timeToMin(dayHours.open);
+      var closeMin=timeToMin(dayHours.close);
+      isOpen=curMin>=openMin&&curMin<closeMin;
+      openStr=minToStr(openMin);
+      closeStr=minToStr(closeMin);
+    }
+  }
+  
+  // ساعات التوصيل
+  var deliveryOpen=isOpen;
+  var deliveryStr='';
+  if(hours.delivery&&!hours.delivery.sameAsStore){
+    var dOpen=timeToMin(hours.delivery.open);
+    var dClose=timeToMin(hours.delivery.close);
+    deliveryOpen=curMin>=dOpen&&curMin<dClose;
+    deliveryStr=minToStr(dOpen)+' - '+minToStr(dClose);
+  }
+  
+  return {open:isOpen, deliveryOpen:deliveryOpen, openStr:openStr, closeStr:closeStr, deliveryStr:deliveryStr};
+}
+
 // ── UTILS ──
 function san(s){if(!s)return'';return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtT(ts){if(!ts)return'';var d=new Date(ts);return d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});}
@@ -717,112 +764,30 @@ function renderHome(){
     var rats=(storesData[sid]||{}).ratings||{};
     var rk=Object.keys(rats);
     var avg=rk.length?(rk.reduce(function(s,k){return s+(rats[k].stars||0);},0)/rk.length).toFixed(1):null;
-    var isOpen=info.status==='open';
-    html+='<div class="store-card" onclick="openStore(\''+sid+'\')"><div class="store-img">'
+    var hoursNow=checkStoreHours((storesData[sid]||{}).settings||{});
+    var isOpen=(info.status==='open')&&hoursNow.open;
+    var badgeText=isOpen?'مفتوح':'مغلق';
+    var hoursLabel='';
+    if(info.status==='open'&&hoursNow.closeStr) hoursLabel='<span style="font-size:10px;color:#8B7355;margin-right:4px">'+(!isOpen&&hoursNow.openStr?'يفتح '+hoursNow.openStr:'حتى '+hoursNow.closeStr)+'</span>';
+    var deliveryLabel='';
+    if(isOpen&&hoursNow.deliveryStr) deliveryLabel='<div style="font-size:10px;color:#C9A84C;margin-top:2px">🛵 '+hoursNow.deliveryStr+'</div>';
+    html+='<div class="store-card" onclick="openStore(\''+sid+'\'"><div class="store-img">'
       +(info.logo?'<img src="'+info.logo+'">':san(info.emoji||'🏪'))
-      +'<span class="store-open-badge '+(isOpen?'badge-open':'badge-closed')+'">'+(isOpen?'مفتوح':'مغلق')+'</span></div>'
+      +'<span class="store-open-badge '+(isOpen?'badge-open':'badge-closed')+'">'+badgeText+'</span></div>'
       +'<div class="store-body"><div class="store-name">'+san(info.name||sid)+'</div>'
       +'<div class="store-type">'+san(info.type||'')+'</div>'
       +'<div class="store-meta">'
       +(avg?'<span class="store-rating">⭐ '+avg+'</span>':'<span class="store-rating">⭐ جديد</span>')
-      +'<span>🛵 توصيل سريع</span></div></div></div>';
+      +hoursLabel
+      +'<span>🛵 توصيل سريع</span></div>'
+      +deliveryLabel
+      +'</div></div>';
   });
   el.innerHTML=html;
 }
 
-// ── OPEN STORE ──
-function openStore(sid){
-  currentStoreId=sid;
-  cart=[];activeCat=null;
-  storeInfo={}; storeMenu={}; storeStock={}; storeSettings={}; storeZone=null;
-  if(!db)return;
-  // info
-  db.ref('stores/'+sid+'/info').on('value',function(s){
-    storeInfo=s.val()||{};
-    var el=document.getElementById('menu-title');
-    if(el) el.textContent=storeInfo.name||'المتجر';
-  });
-  // categories/products
-  db.ref('stores/'+sid+'/categories').on('value',function(s){
-    storeMenu=s.val()||{};
-    renderTabs(); renderItems();
-  });
-  // stock
-  db.ref('stores/'+sid+'/stock').on('value',function(s){storeStock=s.val()||{};renderItems();});
-  // settings
-  db.ref('stores/'+sid+'/settings').on('value',function(s){
-    storeSettings=s.val()||{deliveryFee:10,freeMin:40,deliveryType:'both',cash:true,cashType:'both',mada:true,applePay:true};
-    updateOTButtons(); updateFloatBar(); updateFeeRow(); updateTotal();
-  });
-  // zone
-  db.ref('stores/'+sid+'/delivery_zone').on('value',function(s){
-    var z=s.val();
-    storeZone=(z&&z.points&&z.points.length===4)?z.points:null;
-    if(leafMap&&storeZone) drawZone();
-  });
-  go('menu');
-  updateBadge(); renderTabs(); renderItems(); updateFloatBar();
-}
+// placeholder for hasExtras
 
-// ── TABS & ITEMS ──
-function renderTabs(){
-  var el=document.getElementById('tabs-wrap'); if(!el) return;
-  var cats=Object.keys(storeMenu);
-  if(!activeCat&&cats.length) activeCat=cats[0];
-  el.innerHTML=cats.map(function(cid){
-    return '<button class="tab'+(cid===activeCat?' active':'')+'" onclick="setCat(\''+cid+'\')">'+san((storeMenu[cid]||{}).name||cid)+'</button>';
-  }).join('');
-}
-function setCat(cid){activeCat=cid;renderTabs();renderItems();}
-function getStock(pid){var s=storeStock[pid];if(s===undefined||s===null)return 999;return parseInt(s)||0;}
-function getQty(key){var f=cart.find(function(c){return c.key===key;});return f?f.qty:0;}
-
-function renderItems(){
-  var el=document.getElementById('items-wrap'); if(!el) return;
-  if(!activeCat||!storeMenu[activeCat]){el.innerHTML='<div class="empty-msg">اختر صنفاً</div>';return;}
-  var cat=storeMenu[activeCat];
-  var prods=cat.products||{};
-  var keys=Object.keys(prods);
-  if(!keys.length){el.innerHTML='<div class="empty-msg">لا توجد منتجات</div>';return;}
-  var html='';
-  keys.forEach(function(pid){
-    var p=prods[pid];
-    var stk=getStock(pid);
-    var oos=stk===0;
-    var mi=p.images&&p.images.main;
-    var hasSizes=p.sizes&&p.sizes.length>0;
-    var hasExtras=p.extras&&p.extras.length>0;
-    html+='<div class="item-card"><div class="item-top">';
-    if(mi) html+='<img class="item-img" src="'+mi+'">';
-    html+='<div style="flex:1"><div class="item-name">'+san(p.name)+'</div>';
-    if(p.desc) html+='<div class="item-desc">'+san(p.desc)+'</div>';
-    if(!hasSizes&&p.price!=null) html+='<div class="item-price">'+p.price+' ريال</div>';
-    if(oos) html+='<div class="item-out">نفد المخزون</div>';
-    html+='</div>';
-    if(!hasSizes){
-      var q=getQty(pid);
-      html+='</div><div class="qty-ctrl">'
-        +'<button class="qc-btn"'+(q===0||oos?' disabled':'')+' onclick="chQty(\''+pid+'\',null,'+(p.price||0)+',-1)">−</button>'
-        +'<span class="qc-num">'+q+'</span>'
-        +'<button class="qc-btn"'+(q>=stk||oos?' disabled':'')+' onclick="chQty(\''+pid+'\',null,'+(p.price||0)+',1)">+</button>'
-        +'</div>';
-    } else {
-      html+='</div>';
-    }
-    if(hasSizes){
-      html+='<div class="sizes-wrap">';
-      p.sizes.forEach(function(sz){
-        var sk=pid+'-'+sz.name; var sq=getQty(sk);
-        html+='<div class="size-row"><div><span class="size-label">'+san(sz.name)+'</span> <span class="size-price">'+sz.price+' ريال</span></div>'
-          +'<div class="qty-ctrl">'
-          +'<button class="qc-btn"'+(sq===0||oos?' disabled':'')+' onclick="chQty(\''+pid+'\',\''+sz.name+'\','+sz.price+',-1)">−</button>'
-          +'<span class="qc-num">'+sq+'</span>'
-          +'<button class="qc-btn"'+(sq>=stk||oos?' disabled':'')+' onclick="chQty(\''+pid+'\',\''+sz.name+'\','+sz.price+',1)">+</button>'
-          +'</div></div>';
-      });
-      html+='</div>';
-    }
-    if(hasExtras){
       html+='<div class="extras-wrap"><div class="extras-title">⚡ إضافات إجبارية — اختر:</div>';
       p.extras.forEach(function(ex){
         var ek=pid+'-extra-'+ex.name; var eq=getQty(ek);
@@ -1701,13 +1666,6 @@ if(document.readyState==='loading'){
   setTimeout(hideSplash, 2000);
 }
 
-
-// ═══ START THE APP ═══
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',startApp);
-} else {
-  startApp();
-}
 
 </script>
 </body>
