@@ -576,6 +576,37 @@ function checkStoreHours(settings){
   return {open:isOpen, deliveryOpen:deliveryOpen, openStr:openStr, closeStr:closeStr, deliveryStr:deliveryStr};
 }
 
+// ── HOURS CHECK ──
+var DAYS_KEY_C=['sun','mon','tue','wed','thu','fri','sat'];
+function checkStoreHours(settings){
+  var hours=settings?settings.hours:null;
+  if(!hours) return {open:true,deliveryOpen:true,openStr:'',closeStr:'',deliveryStr:''};
+  var now=new Date();
+  var dayKey=DAYS_KEY_C[now.getDay()];
+  var curMin=now.getHours()*60+now.getMinutes();
+  function tMin(t){if(!t) return 0;var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
+  function tStr(m){var h=Math.floor(m/60),mn=m%60,s=h>=12?'م':'ص';h=h>12?h-12:(h===0?12:h);return h+(mn>0?':'+('0'+mn).slice(-2):'')+' '+s;}
+  var dayH;
+  if(hours.sameEveryDay&&hours.unified){dayH={active:true,open:hours.unified.open,close:hours.unified.close};}
+  else if(hours.days&&hours.days[dayKey]){dayH=hours.days[dayKey];}
+  var isOpen=true,openStr='',closeStr='';
+  if(dayH){
+    if(dayH.active===false){isOpen=false;}
+    else{
+      var oMin=tMin(dayH.open),cMin=tMin(dayH.close);
+      isOpen=curMin>=oMin&&curMin<cMin;
+      openStr=tStr(oMin); closeStr=tStr(cMin);
+    }
+  }
+  var deliveryOpen=isOpen,deliveryStr='';
+  if(hours.delivery&&!hours.delivery.sameAsStore){
+    var dO=tMin(hours.delivery.open),dC=tMin(hours.delivery.close);
+    deliveryOpen=curMin>=dO&&curMin<dC;
+    deliveryStr=tStr(dO)+' - '+tStr(dC);
+  }
+  return{open:isOpen,deliveryOpen:deliveryOpen,openStr:openStr,closeStr:closeStr,deliveryStr:deliveryStr};
+}
+
 // ── UTILS ──
 function san(s){if(!s)return'';return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtT(ts){if(!ts)return'';var d=new Date(ts);return d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});}
@@ -786,25 +817,21 @@ function renderHome(){
   el.innerHTML=html;
 }
 
-// placeholder for hasExtras
-
-      html+='<div class="extras-wrap"><div class="extras-title">⚡ إضافات إجبارية — اختر:</div>';
-      p.extras.forEach(function(ex){
-        var ek=pid+'-extra-'+ex.name; var eq=getQty(ek);
-        html+='<div class="extra-row"><div><span style="font-size:12px;font-weight:600">'+san(ex.name)+'</span>'
-          +(ex.price>0?'<span style="font-size:11px;color:#8B7355"> +'+ex.price+' ريال</span>':'')+'</div>'
-          +'<div class="qty-ctrl">'
-          +'<button class="qc-btn"'+(eq===0?' disabled':'')+' onclick="chQty(\''+ek+'\',null,'+ex.price+',-1)">−</button>'
-          +'<span class="qc-num">'+eq+'</span>'
-          +'<button class="qc-btn" onclick="chQty(\''+ek+'\',null,'+ex.price+',1)">+</button>'
-          +'</div></div>';
-      });
-      html+='</div>';
-    }
-    html+='</div>';
+// ── EXTRAS ──
+function renderExtras(p,pid){
+  if(!p.extras||!p.extras.length) return '';
+  var html='<div class="extras-wrap"><div class="extras-title">إضافات — اختر:</div>';
+  p.extras.forEach(function(ex){
+    var ek=pid+'-extra-'+ex.name; var eq=getQty(ek);
+    html+='<div class="extra-row"><div><span style="font-size:12px;font-weight:600">'+san(ex.name)+'</span>'
+      +(ex.price>0?'<span style="font-size:11px;color:#8B7355"> +'+ex.price+' ريال</span>':'')+'</div>'
+      +'<div class="qty-ctrl">'
+      +'<button class="qc-btn"'+(eq===0?' disabled':'')+' onclick="chQty(\''+ek+'\',null,'+ex.price+',-1)">−</button>'
+      +'<span class="qc-num">'+eq+'</span>'
+      +'<button class="qc-btn" onclick="chQty(\''+ek+'\',null,'+ex.price+',1)">+</button>'
+      +'</div></div>';
   });
-  el.innerHTML=html;
-  updateFloatBar();
+  return html+'</div>';
 }
 
 function chQty(id,size,price,delta){
