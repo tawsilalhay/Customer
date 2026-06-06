@@ -699,7 +699,7 @@ function startApp(){
 var DAYS_KEY_C=['sun','mon','tue','wed','thu','fri','sat'];
 function checkStoreHours(settings){
   var hours=settings?settings.hours:null;
-  if(!hours) return {open:true,deliveryOpen:true,openStr:'',closeStr:'',deliveryStr:'',workStr:''};
+  if(!hours) return {open:true,deliveryOpen:true,openStr:'',closeStr:'',deliveryStr:'',workStr:'',is24:false};
   var now=new Date();
   var dayKey=DAYS_KEY_C[now.getDay()];
   var curMin=now.getHours()*60+now.getMinutes();
@@ -708,9 +708,13 @@ function checkStoreHours(settings){
   var dayH;
   if(hours.sameEveryDay&&hours.unified){dayH={active:true,open:hours.unified.open,close:hours.unified.close};}
   else if(hours.days&&hours.days[dayKey]){dayH=hours.days[dayKey];}
+  // فحص 24 ساعة
+  var is24=false;
+  if(dayH&&dayH.open==='00:00'&&(dayH.close==='23:59'||dayH.close==='00:00')){is24=true;}
   var isOpen=true,openStr='',closeStr='',workStr='';
   if(dayH){
     if(dayH.active===false){isOpen=false;}
+    else if(is24){isOpen=true;workStr='24 ساعة';}
     else{
       var oMin=tMin(dayH.open),cMin=tMin(dayH.close);
       isOpen=curMin>=oMin&&curMin<cMin;
@@ -722,14 +726,18 @@ function checkStoreHours(settings){
   var deliveryOpen=isOpen,deliveryStr='',deliveryOpenStr='',deliveryCloseStr='';
   if(hours.delivery&&!hours.delivery.sameAsStore){
     var dO=tMin(hours.delivery.open),dC=tMin(hours.delivery.close);
-    deliveryOpen=isOpen&&(curMin>=dO&&curMin<dC);
-    deliveryOpenStr=tStr(dO); deliveryCloseStr=tStr(dC);
-    deliveryStr=tStr(dO)+' - '+tStr(dC);
+    var isDelivery24=(hours.delivery.open==='00:00'&&(hours.delivery.close==='23:59'||hours.delivery.close==='00:00'));
+    if(isDelivery24){deliveryOpen=true;deliveryStr='توصيل 24 ساعة';}
+    else{
+      deliveryOpen=isOpen&&(curMin>=dO&&curMin<dC);
+      deliveryOpenStr=tStr(dO); deliveryCloseStr=tStr(dC);
+      deliveryStr=tStr(dO)+' - '+tStr(dC);
+    }
   } else {
     deliveryStr=workStr;
     deliveryOpenStr=openStr; deliveryCloseStr=closeStr;
   }
-  return{open:isOpen,deliveryOpen:deliveryOpen,openStr:openStr,closeStr:closeStr,workStr:workStr,deliveryStr:deliveryStr,deliveryOpenStr:deliveryOpenStr,deliveryCloseStr:deliveryCloseStr};
+  return{open:isOpen,deliveryOpen:deliveryOpen,openStr:openStr,closeStr:closeStr,workStr:workStr,deliveryStr:deliveryStr,is24:is24};
 }
 
 // ── HOME ──
@@ -758,7 +766,9 @@ function renderHome(){
     var isOpen=(info.status==='open')&&hoursNow.open;
     var badgeText=isOpen?'مفتوح':'مغلق';
     var hoursLabel='';
-    if(hoursNow.workStr){
+    if(hoursNow.is24){
+      hoursLabel='<div style="font-size:10px;color:#4ade80;margin-top:3px;font-weight:700">مفتوح 24 ساعة</div>';
+    } else if(hoursNow.workStr){
       if(!isOpen) hoursLabel='<div style="font-size:10px;color:#dc2626;margin-top:3px">خارج أوقات العمل • '+hoursNow.workStr+'</div>';
       else hoursLabel='<div style="font-size:10px;color:#8B7355;margin-top:3px">أوقات العمل: '+hoursNow.workStr+'</div>';
     }
