@@ -372,7 +372,7 @@ body.dark-mode .store-type,body.dark-mode .item-desc{color:#aaa!important}
           style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #dbeafe;font-family:inherit;font-size:15px;text-align:right;direction:rtl;outline:none;box-sizing:border-box;margin-bottom:8px"
           oninput="syncOTPPhone()">
         <div id="otp-phone-err" style="color:#dc2626;font-size:11px;margin-bottom:8px;display:none"></div>
-        <button onclick="sendOTP('delivery')"
+        <button onclick="sendOTP('delivery',this)"
           style="width:100%;padding:12px;background:#1e40af;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">
           إرسال رمز واتساب
         </button>
@@ -409,14 +409,8 @@ body.dark-mode .store-type,body.dark-mode .item-desc{color:#aaa!important}
     </div>
 
     <div><label class="f-label">الاسم</label><input class="f-input" id="f-name" placeholder="اسمك الكريم"></div>
-    <div>
-      <label class="f-label">رقم الجوال</label>
-      <div style="font-size:11px;color:#8B7355;margin-bottom:4px;background:#FFF8F0;padding:6px 10px;border-radius:8px;border:1px solid #E8DFD0">
-        📱 أدخل رقمك: <b>05xxxxxxxx</b> (10 أرقام) أو <b>966xxxxxxxxx</b>
-      </div>
-      <input class="f-input" id="f-phone" type="tel" placeholder="05xxxxxxxx" oninput="checkPhone(this,'phone-status')">
-      <div id="phone-status" style="font-size:11px;margin-top:3px;display:none"></div>
-    </div>
+    <input type="hidden" id="f-phone" value="">
+    <div id="phone-status" style="display:none"></div>
     <div>
       <label class="f-label">موقعك على الخريطة</label>
       <div class="map-hint">اضغط لتحديد موقعك</div>
@@ -450,7 +444,7 @@ body.dark-mode .store-type,body.dark-mode .item-desc{color:#aaa!important}
         <input id="otp-phone-input-pickup" type="tel" placeholder="05xxxxxxxx" maxlength="10"
           style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #dbeafe;font-family:inherit;font-size:15px;text-align:right;direction:rtl;outline:none;box-sizing:border-box;margin-bottom:8px">
         <div id="otp-phone-err-pickup" style="color:#dc2626;font-size:11px;margin-bottom:8px;display:none"></div>
-        <button onclick="sendOTP('pickup')"
+        <button onclick="sendOTP('pickup',this)"
           style="width:100%;padding:12px;background:#1e40af;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">
           إرسال رمز واتساب
         </button>
@@ -485,14 +479,8 @@ body.dark-mode .store-type,body.dark-mode .item-desc{color:#aaa!important}
     </div>
 
     <div><label class="f-label">الاسم</label><input class="f-input" id="p-name" placeholder="اسمك الكريم"></div>
-    <div>
-      <label class="f-label">رقم الجوال</label>
-      <div style="font-size:11px;color:#8B7355;margin-bottom:4px;background:#FFF8F0;padding:6px 10px;border-radius:8px;border:1px solid #E8DFD0">
-        📱 أدخل رقمك: <b>05xxxxxxxx</b> (10 أرقام) أو <b>966xxxxxxxxx</b>
-      </div>
-      <input class="f-input" id="p-phone" type="tel" placeholder="05xxxxxxxx" oninput="checkPhone(this,'p-phone-status')">
-      <div id="p-phone-status" style="font-size:11px;margin-top:3px;display:none"></div>
-    </div>
+    <input type="hidden" id="p-phone" value="">
+    <div id="p-phone-status" style="display:none"></div>
     <div class="f-card" id="pickup-summary"></div>
     <button class="submit-btn" onclick="goToPayPickup()">متابعة للدفع ←</button>
   </div>
@@ -1915,19 +1903,20 @@ function syncOTPPhone(){
   if(inp&&fPhone) fPhone.value=inp.value;
 }
 
-function sendOTP(ctx){
+function sendOTP(ctx,btnEl){
   ctx=ctx||'delivery';
-  var phoneInp=ctx==='pickup'?document.getElementById('otp-phone-input-pickup'):document.getElementById('otp-phone-input');
-  var errEl=document.getElementById('otp-phone-err'+(ctx==='pickup'?'-pickup':''));
+  var phoneId=ctx==='pickup'?'otp-phone-input-pickup':'otp-phone-input';
+  var errId=ctx==='pickup'?'otp-phone-err-pickup':'otp-phone-err';
+  var phoneInp=document.getElementById(phoneId);
+  var errEl=document.getElementById(errId);
   var phone=phoneInp?phoneInp.value.trim():'';
   if(!validPhone(phone)){
-    if(errEl){errEl.textContent='❌ أدخل رقم جوال صحيح';errEl.style.display='block';}
+    if(errEl){errEl.textContent='أدخل رقم جوال صحيح مثل 05xxxxxxxx';errEl.style.display='block';}
     return;
   }
   if(errEl) errEl.style.display='none';
   _otpPhone=phone;
-  var btn=document.querySelector('#otp-unverified-'+(ctx)+' button');
-  if(btn){btn.textContent='⏳ جاري الإرسال...';btn.disabled=true;}
+  if(btnEl){btnEl.textContent='⏳ جاري الإرسال...';btnEl.disabled=true;}
 
   fetch('https://alhay-api.vercel.app/api/otp',{
     method:'POST',
@@ -1945,12 +1934,12 @@ function sendOTP(ctx){
       if(first) first.focus();
     } else {
       if(errEl){errEl.textContent='❌ '+(data.error||'فشل الإرسال');errEl.style.display='block';}
-      if(btn){btn.textContent='إرسال رمز واتساب';btn.disabled=false;}
+      if(btnEl){btnEl.textContent='إرسال رمز واتساب';btnEl.disabled=false;}
     }
   })
   .catch(function(){
-    if(errEl){errEl.textContent='❌ تعذر الاتصال';errEl.style.display='block';}
-    if(btn){btn.textContent='إرسال رمز واتساب';btn.disabled=false;}
+    if(errEl){errEl.textContent='❌ تعذر الاتصال - تحقق من الإنترنت';errEl.style.display='block';}
+    if(btnEl){btnEl.textContent='إرسال رمز واتساب';btnEl.disabled=false;}
   });
 }
 
@@ -2005,8 +1994,8 @@ function verifyOTP(ctx){
       // تعبئة حقول الجوال تلقائياً
       var fPhone=document.getElementById('f-phone');
       var pPhone=document.getElementById('p-phone');
-      if(fPhone&&!fPhone.value){fPhone.value=_otpPhone;checkPhone(fPhone,'phone-status');}
-      if(pPhone&&!pPhone.value){pPhone.value=_otpPhone;checkPhone(pPhone,'p-phone-status');}
+      if(fPhone){fPhone.value=_otpPhone;}
+      if(pPhone){pPhone.value=_otpPhone;}
       try{localStorage.setItem('cust_phone',_otpPhone);}catch(e){}
       showNotif('✅ تم التحقق بنجاح!');
     } else {
@@ -2085,59 +2074,7 @@ function skipOTP(){
   try{ localStorage.setItem('otp_skipped','1'); }catch(e){}
 }
 
-function sendOTP(){
-  var phone = document.getElementById('otp-phone-input').value.trim();
-  var err = document.getElementById('otp-phone-err');
-  if(!validPhone(phone)){
-    err.textContent = '❌ أدخل رقم جوال صحيح';
-    err.style.display = 'block'; return;
-  }
-  err.style.display = 'none';
-  _otpPhone = phone;
-  var btn = document.querySelector('.otp-send-btn');
-  btn.textContent = '⏳ جاري الإرسال...';
-  btn.disabled = true;
 
-  fetch('https://alhay-api.vercel.app/api/otp', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({action:'send', phone: phone})
-  })
-  .then(function(r){return r.json();})
-  .then(function(data){
-    if(data.success){
-      // الانتقال لخطوة إدخال الرمز
-      document.getElementById('otp-step1').style.display = 'none';
-      document.getElementById('otp-step2').style.display = 'block';
-      document.getElementById('otp-step2-sub').textContent = 'أدخل الرمز المرسل لواتساب ' + phone;
-      document.getElementById('otp-d1').focus();
-    } else {
-      err.textContent = '❌ ' + (data.error || 'فشل الإرسال');
-      err.style.display = 'block';
-      btn.textContent = 'إرسال رمز واتساب 💬';
-      btn.disabled = false;
-    }
-  })
-  .catch(function(){
-    err.textContent = '❌ تعذر الاتصال';
-    err.style.display = 'block';
-    btn.textContent = 'إرسال رمز واتساب 💬';
-    btn.disabled = false;
-  });
-}
-
-function otpNext(el, num){
-  if(el.value.length === 1 && num < 4){
-    document.getElementById('otp-d'+(num+1)).focus();
-  }
-  // إذا اكتمل تلقائياً
-  if(num === 4){
-    var code = ['otp-d1','otp-d2','otp-d3','otp-d4'].map(function(id){
-      return document.getElementById(id).value;
-    }).join('');
-    if(code.length === 4) setTimeout(verifyOTP, 200);
-  }
-}
 
 function otpBack(e, el, prevNum){
   if(e.key === 'Backspace' && !el.value && prevNum > 0){
@@ -2145,55 +2082,6 @@ function otpBack(e, el, prevNum){
   }
 }
 
-function verifyOTP(){
-  var code = ['otp-d1','otp-d2','otp-d3','otp-d4'].map(function(id){
-    return document.getElementById(id).value;
-  }).join('');
-  var err = document.getElementById('otp-err');
-  if(code.length < 4){ err.textContent='أدخل الرمز كاملاً';err.style.display='block';return;}
-  err.style.display='none';
-  var btn = document.querySelector('#otp-step2 .otp-send-btn');
-  btn.textContent='⏳ جاري التحقق...';btn.disabled=true;
-
-  fetch('https://alhay-api.vercel.app/api/otp', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'verify', phone:_otpPhone, otp:code})
-  })
-  .then(function(r){return r.json();})
-  .then(function(data){
-    if(data.success){
-      _otpVerified=true;
-      try{localStorage.setItem('otp_phone',_otpPhone);localStorage.setItem('otp_verified','1');}catch(e){}
-      // حفظ الرقم للاستخدام في الطلبات
-      var nameInp=document.getElementById('f-name');
-      var phoneInp=document.getElementById('f-phone');
-      var pPhoneInp=document.getElementById('p-phone');
-      if(phoneInp) phoneInp.value=_otpPhone;
-      if(pPhoneInp) pPhoneInp.value=_otpPhone;
-      try{localStorage.setItem('cust_phone',_otpPhone);}catch(e){}
-      hideOTPScreen();
-      showNotif('✅ تم التحقق بنجاح!');
-    } else {
-      err.textContent='❌ رمز غير صحيح';err.style.display='block';
-      btn.textContent='تحقق';btn.disabled=false;
-      ['otp-d1','otp-d2','otp-d3','otp-d4'].forEach(function(id){document.getElementById(id).value='';});
-      document.getElementById('otp-d1').focus();
-    }
-  })
-  .catch(function(){
-    err.textContent='❌ تعذر الاتصال';err.style.display='block';
-    btn.textContent='تحقق';btn.disabled=false;
-  });
-}
-
-function resendOTP(){
-  document.getElementById('otp-step2').style.display='none';
-  document.getElementById('otp-step1').style.display='block';
-  var btn=document.querySelector('.otp-send-btn');
-  btn.textContent='إرسال رمز واتساب 💬';btn.disabled=false;
-  ['otp-d1','otp-d2','otp-d3','otp-d4'].forEach(function(id){document.getElementById(id).value='';});
-}
 
 function checkOTPStatus(){
   try{
