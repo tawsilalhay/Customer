@@ -206,6 +206,19 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 .login-input:focus{border-color:#2D5016}
 .login-btn{width:100%;padding:14px;background:#2D5016;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer}
 .login-skip{width:100%;padding:10px;background:transparent;color:#8B7355;border:none;font-family:inherit;font-size:13px;cursor:pointer;margin-top:8px}
+/* OTP SCREEN */
+.otp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.otp-card{background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:380px;text-align:center}
+.otp-title{font-size:20px;font-weight:800;color:#2D5016;margin-bottom:6px}
+.otp-sub{font-size:13px;color:#8B7355;margin-bottom:24px;line-height:1.5}
+.otp-inputs{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+.otp-input{width:54px;height:60px;border-radius:12px;border:2px solid #E8DFD0;font-size:26px;font-weight:800;text-align:center;color:#1A0A00;outline:none;transition:.2s}
+.otp-input:focus{border-color:#2D5016}
+.otp-send-btn{width:100%;padding:14px;background:#2D5016;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:10px}
+.otp-resend{font-size:12px;color:#8B7355;cursor:pointer;background:none;border:none;font-family:inherit}
+.otp-phone-inp{width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid #E8DFD0;font-family:inherit;font-size:16px;color:#1A0A00;outline:none;margin-bottom:16px;text-align:right;direction:rtl;box-sizing:border-box}
+.otp-phone-inp:focus{border-color:#2D5016}
+
 /* SPLASH */
 @keyframes splashPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 @keyframes splashDot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-6px)}}
@@ -349,6 +362,52 @@ body.dark-mode .store-type,body.dark-mode .item-desc{color:#aaa!important}
     <button class="back-btn" onclick="go('cart')">←</button>
   </div>
   <div class="form-wrap">
+    <!-- OTP Section - التحقق من الهوية -->
+    <div id="otp-section-delivery" style="background:#F0F7FF;border-radius:14px;padding:16px;margin-bottom:16px;border:1.5px solid #dbeafe">
+      <!-- حالة: لم يتم التحقق بعد -->
+      <div id="otp-unverified-delivery">
+        <div style="font-size:13px;font-weight:800;color:#1e40af;margin-bottom:4px">تحقق من رقم جوالك</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:12px">سيصلك رمز تحقق على واتساب</div>
+        <input id="otp-phone-input" type="tel" placeholder="05xxxxxxxx" maxlength="10"
+          style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #dbeafe;font-family:inherit;font-size:15px;text-align:right;direction:rtl;outline:none;box-sizing:border-box;margin-bottom:8px"
+          oninput="syncOTPPhone()">
+        <div id="otp-phone-err" style="color:#dc2626;font-size:11px;margin-bottom:8px;display:none"></div>
+        <button onclick="sendOTP('delivery')"
+          style="width:100%;padding:12px;background:#1e40af;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">
+          إرسال رمز واتساب
+        </button>
+      </div>
+      <!-- حالة: إدخال الرمز -->
+      <div id="otp-code-delivery" style="display:none">
+        <div style="font-size:13px;font-weight:800;color:#1e40af;margin-bottom:4px">أدخل رمز التحقق</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:12px" id="otp-sent-msg-delivery">تم إرسال الرمز</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px">
+          <input class="otp-input" type="tel" maxlength="1" id="d-otp-1" oninput="dOtpNext(this,1,'delivery')" onkeydown="otpBack(event,this,0)">
+          <input class="otp-input" type="tel" maxlength="1" id="d-otp-2" oninput="dOtpNext(this,2,'delivery')" onkeydown="otpBack(event,this,1)">
+          <input class="otp-input" type="tel" maxlength="1" id="d-otp-3" oninput="dOtpNext(this,3,'delivery')" onkeydown="otpBack(event,this,2)">
+          <input class="otp-input" type="tel" maxlength="1" id="d-otp-4" oninput="dOtpNext(this,4,'delivery')" onkeydown="otpBack(event,this,3)">
+        </div>
+        <div id="otp-verify-err-delivery" style="color:#dc2626;font-size:11px;margin-bottom:8px;display:none"></div>
+        <button onclick="verifyOTP('delivery')"
+          style="width:100%;padding:12px;background:#1e40af;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">
+          تحقق
+        </button>
+        <button onclick="resendOTP('delivery')"
+          style="width:100%;padding:8px;background:none;border:none;color:#6b7280;font-family:inherit;font-size:12px;cursor:pointer;margin-top:4px">
+          إعادة إرسال
+        </button>
+      </div>
+      <!-- حالة: تم التحقق -->
+      <div id="otp-verified-delivery" style="display:none;align-items:center;gap:10px">
+        <div style="font-size:22px">✅</div>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:#166534">تم التحقق</div>
+          <div style="font-size:12px;color:#6b7280" id="otp-verified-phone-delivery"></div>
+        </div>
+        <button onclick="resetOTP('delivery')" style="margin-right:auto;background:none;border:none;color:#6b7280;font-size:11px;cursor:pointer;font-family:inherit">تغيير</button>
+      </div>
+    </div>
+
     <div><label class="f-label">الاسم</label><input class="f-input" id="f-name" placeholder="اسمك الكريم"></div>
     <div>
       <label class="f-label">رقم الجوال</label>
@@ -383,6 +442,48 @@ body.dark-mode .store-type,body.dark-mode .item-desc{color:#aaa!important}
     <button class="back-btn" onclick="go('cart')">←</button>
   </div>
   <div class="form-wrap">
+    <!-- OTP Section -->
+    <div id="otp-section-pickup" style="background:#F0F7FF;border-radius:14px;padding:16px;margin-bottom:16px;border:1.5px solid #dbeafe">
+      <div id="otp-unverified-pickup">
+        <div style="font-size:13px;font-weight:800;color:#1e40af;margin-bottom:4px">تحقق من رقم جوالك</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:12px">سيصلك رمز تحقق على واتساب</div>
+        <input id="otp-phone-input-pickup" type="tel" placeholder="05xxxxxxxx" maxlength="10"
+          style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #dbeafe;font-family:inherit;font-size:15px;text-align:right;direction:rtl;outline:none;box-sizing:border-box;margin-bottom:8px">
+        <div id="otp-phone-err-pickup" style="color:#dc2626;font-size:11px;margin-bottom:8px;display:none"></div>
+        <button onclick="sendOTP('pickup')"
+          style="width:100%;padding:12px;background:#1e40af;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">
+          إرسال رمز واتساب
+        </button>
+      </div>
+      <div id="otp-code-pickup" style="display:none">
+        <div style="font-size:13px;font-weight:800;color:#1e40af;margin-bottom:4px">أدخل رمز التحقق</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:12px" id="otp-sent-msg-pickup">تم إرسال الرمز</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px">
+          <input class="otp-input" type="tel" maxlength="1" id="p-otp-1" oninput="dOtpNext(this,1,'pickup')" onkeydown="otpBack(event,this,0)">
+          <input class="otp-input" type="tel" maxlength="1" id="p-otp-2" oninput="dOtpNext(this,2,'pickup')" onkeydown="otpBack(event,this,1)">
+          <input class="otp-input" type="tel" maxlength="1" id="p-otp-3" oninput="dOtpNext(this,3,'pickup')" onkeydown="otpBack(event,this,2)">
+          <input class="otp-input" type="tel" maxlength="1" id="p-otp-4" oninput="dOtpNext(this,4,'pickup')" onkeydown="otpBack(event,this,3)">
+        </div>
+        <div id="otp-verify-err-pickup" style="color:#dc2626;font-size:11px;margin-bottom:8px;display:none"></div>
+        <button onclick="verifyOTP('pickup')"
+          style="width:100%;padding:12px;background:#1e40af;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">
+          تحقق
+        </button>
+        <button onclick="resendOTP('pickup')"
+          style="width:100%;padding:8px;background:none;border:none;color:#6b7280;font-family:inherit;font-size:12px;cursor:pointer;margin-top:4px">
+          إعادة إرسال
+        </button>
+      </div>
+      <div id="otp-verified-pickup" style="display:none;align-items:center;gap:10px">
+        <div style="font-size:22px">✅</div>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:#166534">تم التحقق</div>
+          <div style="font-size:12px;color:#6b7280" id="otp-verified-phone-pickup"></div>
+        </div>
+        <button onclick="resetOTP('pickup')" style="margin-right:auto;background:none;border:none;color:#6b7280;font-size:11px;cursor:pointer;font-family:inherit">تغيير</button>
+      </div>
+    </div>
+
     <div><label class="f-label">الاسم</label><input class="f-input" id="p-name" placeholder="اسمك الكريم"></div>
     <div>
       <label class="f-label">رقم الجوال</label>
@@ -992,6 +1093,7 @@ function go(name){
   if(name==='cart') renderCart();
   if(name==='confirm'){
     renderConfirmSummary();initMap();
+    setTimeout(function(){initOTPSection('delivery');},300);
     // تعبئة البيانات المحفوظة
     setTimeout(function(){
       try{
@@ -1018,6 +1120,7 @@ function go(name){
   }
   if(name==='pickup'){
     renderPickupSummary();
+    setTimeout(function(){initOTPSection('pickup');},300);
     setTimeout(function(){
       try{
         var savedName=localStorage.getItem('cust_name');
@@ -1227,6 +1330,11 @@ function clearImg(){houseImg=null;var p=document.getElementById('img-prev');p.sr
 
 // ── PAYMENT ──
 function goToPay(){
+  if(!_otpVerified){
+    showNotif('❌ يجب التحقق من رقم الجوال أولاً');
+    document.getElementById('otp-phone-input').scrollIntoView({behavior:'smooth'});
+    return;
+  }
   var n=document.getElementById('f-name').value.trim();
   var p=document.getElementById('f-phone').value.trim();
   if(!n){alert('يرجى إدخال الاسم');return;}
@@ -1237,6 +1345,10 @@ function goToPay(){
   go('payment');
 }
 function goToPayPickup(){
+  if(!_otpVerifiedPickup){
+    showNotif('❌ يجب التحقق من رقم الجوال أولاً');
+    return;
+  }
   var n=document.getElementById('p-name').value.trim();
   var p=document.getElementById('p-phone').value.trim();
   if(!n){alert('يرجى إدخال الاسم');return;}
@@ -1251,7 +1363,7 @@ function renderPayMethods(){
   var methods=document.getElementById('pay-methods');
   if(methods){
     methods.style.display='block';
-    methods.innerHTML='<button class="pay-btn" style="background:linear-gradient(135deg,#2D5016,#4a7c1f);color:#fff;border-color:#2D5016;font-size:15px;padding:16px" onclick="payWithPayLink()">💳 ادفع الآن (مدى / Apple Pay / فيزا)</button>';
+    methods.innerHTML='<button class="pay-btn pay-cash" style="font-size:15px;padding:16px" onclick="showCashOptions()">💵 الدفع عند الاستلام</button>';
   }
 }
 
@@ -1791,6 +1903,314 @@ function toggleLang(){
   if(sub) sub.textContent=isAr?'أطلب من متاجر حيك المفضلة':'Order from your neighborhood stores';
 }
 
+// ── OTP SYSTEM ──
+var _otpPhone = '';
+var _otpVerified = false;
+var _otpVerifiedPickup = false;
+
+function syncOTPPhone(){
+  // مزامنة رقم الجوال مع حقل f-phone
+  var inp=document.getElementById('otp-phone-input');
+  var fPhone=document.getElementById('f-phone');
+  if(inp&&fPhone) fPhone.value=inp.value;
+}
+
+function sendOTP(ctx){
+  ctx=ctx||'delivery';
+  var phoneInp=ctx==='pickup'?document.getElementById('otp-phone-input-pickup'):document.getElementById('otp-phone-input');
+  var errEl=document.getElementById('otp-phone-err'+(ctx==='pickup'?'-pickup':''));
+  var phone=phoneInp?phoneInp.value.trim():'';
+  if(!validPhone(phone)){
+    if(errEl){errEl.textContent='❌ أدخل رقم جوال صحيح';errEl.style.display='block';}
+    return;
+  }
+  if(errEl) errEl.style.display='none';
+  _otpPhone=phone;
+  var btn=document.querySelector('#otp-unverified-'+(ctx)+' button');
+  if(btn){btn.textContent='⏳ جاري الإرسال...';btn.disabled=true;}
+
+  fetch('https://alhay-api.vercel.app/api/otp',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'send',phone:phone})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.success){
+      document.getElementById('otp-unverified-'+ctx).style.display='none';
+      document.getElementById('otp-code-'+ctx).style.display='block';
+      var msg=document.getElementById('otp-sent-msg-'+ctx);
+      if(msg) msg.textContent='تم إرسال الرمز لواتساب '+phone;
+      var first=document.getElementById((ctx==='pickup'?'p':'d')+'-otp-1');
+      if(first) first.focus();
+    } else {
+      if(errEl){errEl.textContent='❌ '+(data.error||'فشل الإرسال');errEl.style.display='block';}
+      if(btn){btn.textContent='إرسال رمز واتساب';btn.disabled=false;}
+    }
+  })
+  .catch(function(){
+    if(errEl){errEl.textContent='❌ تعذر الاتصال';errEl.style.display='block';}
+    if(btn){btn.textContent='إرسال رمز واتساب';btn.disabled=false;}
+  });
+}
+
+function dOtpNext(el,num,ctx){
+  var prefix=ctx==='pickup'?'p':'d';
+  if(el.value.length===1&&num<4){
+    var next=document.getElementById(prefix+'-otp-'+(num+1));
+    if(next) next.focus();
+  }
+  if(num===4){
+    var code='';
+    for(var i=1;i<=4;i++){
+      var d=document.getElementById(prefix+'-otp-'+i);
+      code+=d?d.value:'';
+    }
+    if(code.length===4) setTimeout(function(){verifyOTP(ctx);},200);
+  }
+}
+
+function verifyOTP(ctx){
+  ctx=ctx||'delivery';
+  var prefix=ctx==='pickup'?'p':'d';
+  var code='';
+  for(var i=1;i<=4;i++){
+    var d=document.getElementById(prefix+'-otp-'+i);
+    code+=d?d.value:'';
+  }
+  var errEl=document.getElementById('otp-verify-err-'+ctx);
+  if(code.length<4){if(errEl){errEl.textContent='أدخل الرمز كاملاً';errEl.style.display='block';}return;}
+  if(errEl) errEl.style.display='none';
+  var btn=document.querySelector('#otp-code-'+ctx+' button');
+  if(btn){btn.textContent='⏳ جاري التحقق...';btn.disabled=true;}
+
+  fetch('https://alhay-api.vercel.app/api/otp',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'verify',phone:_otpPhone,otp:code})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.success){
+      // نعرض حالة التحقق
+      document.getElementById('otp-code-'+ctx).style.display='none';
+      var verDiv=document.getElementById('otp-verified-'+ctx);
+      if(verDiv){verDiv.style.display='flex';}
+      var verPhone=document.getElementById('otp-verified-phone-'+ctx);
+      if(verPhone) verPhone.textContent=_otpPhone;
+      // حفظ
+      if(ctx==='pickup'){_otpVerifiedPickup=true;}
+      else{_otpVerified=true;}
+      try{localStorage.setItem('otp_phone',_otpPhone);localStorage.setItem('otp_verified','1');}catch(e){}
+      // تعبئة حقول الجوال تلقائياً
+      var fPhone=document.getElementById('f-phone');
+      var pPhone=document.getElementById('p-phone');
+      if(fPhone&&!fPhone.value){fPhone.value=_otpPhone;checkPhone(fPhone,'phone-status');}
+      if(pPhone&&!pPhone.value){pPhone.value=_otpPhone;checkPhone(pPhone,'p-phone-status');}
+      try{localStorage.setItem('cust_phone',_otpPhone);}catch(e){}
+      showNotif('✅ تم التحقق بنجاح!');
+    } else {
+      if(errEl){errEl.textContent='❌ رمز غير صحيح';errEl.style.display='block';}
+      if(btn){btn.textContent='تحقق';btn.disabled=false;}
+      for(var i=1;i<=4;i++){var d=document.getElementById(prefix+'-otp-'+i);if(d)d.value='';}
+      var first=document.getElementById(prefix+'-otp-1');if(first)first.focus();
+    }
+  })
+  .catch(function(){
+    if(errEl){errEl.textContent='❌ تعذر الاتصال';errEl.style.display='block';}
+    if(btn){btn.textContent='تحقق';btn.disabled=false;}
+  });
+}
+
+function resendOTP(ctx){
+  ctx=ctx||'delivery';
+  document.getElementById('otp-code-'+ctx).style.display='none';
+  document.getElementById('otp-unverified-'+ctx).style.display='block';
+  var prefix=ctx==='pickup'?'p':'d';
+  for(var i=1;i<=4;i++){var d=document.getElementById(prefix+'-otp-'+i);if(d)d.value='';}
+  var btn=document.querySelector('#otp-unverified-'+ctx+' button');
+  if(btn){btn.textContent='إرسال رمز واتساب';btn.disabled=false;}
+}
+
+function resetOTP(ctx){
+  ctx=ctx||'delivery';
+  if(ctx==='pickup'){_otpVerifiedPickup=false;}
+  else{_otpVerified=false;}
+  document.getElementById('otp-verified-'+ctx).style.display='none';
+  document.getElementById('otp-unverified-'+ctx).style.display='block';
+  var prefix=ctx==='pickup'?'p':'d';
+  for(var i=1;i<=4;i++){var d=document.getElementById(prefix+'-otp-'+i);if(d)d.value='';}
+}
+
+function initOTPSection(ctx){
+  // إذا تم التحقق مسبقاً، نعرض الحالة المحفوظة
+  try{
+    var phone=localStorage.getItem('otp_phone');
+    var verified=localStorage.getItem('otp_verified');
+    if(verified==='1'&&phone){
+      _otpPhone=phone;
+      if(ctx==='delivery') _otpVerified=true;
+      if(ctx==='pickup') _otpVerifiedPickup=true;
+      document.getElementById('otp-unverified-'+ctx).style.display='none';
+      var verDiv=document.getElementById('otp-verified-'+ctx);
+      if(verDiv) verDiv.style.display='flex';
+      var verPhone=document.getElementById('otp-verified-phone-'+ctx);
+      if(verPhone) verPhone.textContent=phone;
+      // تعبئة حقول الجوال
+      var fPhone=document.getElementById('f-phone');
+      var pPhone=document.getElementById('p-phone');
+      if(fPhone&&!fPhone.value){fPhone.value=phone;checkPhone(fPhone,'phone-status');}
+      if(pPhone&&!pPhone.value){pPhone.value=phone;checkPhone(pPhone,'p-phone-status');}
+      try{localStorage.setItem('cust_phone',phone);}catch(e){}
+      // تعبئة حقل OTP phone
+      var otpInp=document.getElementById('otp-phone-input'+(ctx==='pickup'?'-pickup':''));
+      if(otpInp) otpInp.value=phone;
+    }
+  }catch(e){}
+}
+
+function showOTPScreen(){
+  var overlay = document.getElementById('otp-overlay');
+  if(overlay) overlay.style.display = 'flex';
+}
+
+function hideOTPScreen(){
+  var overlay = document.getElementById('otp-overlay');
+  if(overlay) overlay.style.display = 'none';
+}
+
+function skipOTP(){
+  hideOTPScreen();
+  // حفظ بيانات الزائر بدون تحقق
+  try{ localStorage.setItem('otp_skipped','1'); }catch(e){}
+}
+
+function sendOTP(){
+  var phone = document.getElementById('otp-phone-input').value.trim();
+  var err = document.getElementById('otp-phone-err');
+  if(!validPhone(phone)){
+    err.textContent = '❌ أدخل رقم جوال صحيح';
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+  _otpPhone = phone;
+  var btn = document.querySelector('.otp-send-btn');
+  btn.textContent = '⏳ جاري الإرسال...';
+  btn.disabled = true;
+
+  fetch('https://alhay-api.vercel.app/api/otp', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({action:'send', phone: phone})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.success){
+      // الانتقال لخطوة إدخال الرمز
+      document.getElementById('otp-step1').style.display = 'none';
+      document.getElementById('otp-step2').style.display = 'block';
+      document.getElementById('otp-step2-sub').textContent = 'أدخل الرمز المرسل لواتساب ' + phone;
+      document.getElementById('otp-d1').focus();
+    } else {
+      err.textContent = '❌ ' + (data.error || 'فشل الإرسال');
+      err.style.display = 'block';
+      btn.textContent = 'إرسال رمز واتساب 💬';
+      btn.disabled = false;
+    }
+  })
+  .catch(function(){
+    err.textContent = '❌ تعذر الاتصال';
+    err.style.display = 'block';
+    btn.textContent = 'إرسال رمز واتساب 💬';
+    btn.disabled = false;
+  });
+}
+
+function otpNext(el, num){
+  if(el.value.length === 1 && num < 4){
+    document.getElementById('otp-d'+(num+1)).focus();
+  }
+  // إذا اكتمل تلقائياً
+  if(num === 4){
+    var code = ['otp-d1','otp-d2','otp-d3','otp-d4'].map(function(id){
+      return document.getElementById(id).value;
+    }).join('');
+    if(code.length === 4) setTimeout(verifyOTP, 200);
+  }
+}
+
+function otpBack(e, el, prevNum){
+  if(e.key === 'Backspace' && !el.value && prevNum > 0){
+    document.getElementById('otp-d'+prevNum).focus();
+  }
+}
+
+function verifyOTP(){
+  var code = ['otp-d1','otp-d2','otp-d3','otp-d4'].map(function(id){
+    return document.getElementById(id).value;
+  }).join('');
+  var err = document.getElementById('otp-err');
+  if(code.length < 4){ err.textContent='أدخل الرمز كاملاً';err.style.display='block';return;}
+  err.style.display='none';
+  var btn = document.querySelector('#otp-step2 .otp-send-btn');
+  btn.textContent='⏳ جاري التحقق...';btn.disabled=true;
+
+  fetch('https://alhay-api.vercel.app/api/otp', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'verify', phone:_otpPhone, otp:code})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.success){
+      _otpVerified=true;
+      try{localStorage.setItem('otp_phone',_otpPhone);localStorage.setItem('otp_verified','1');}catch(e){}
+      // حفظ الرقم للاستخدام في الطلبات
+      var nameInp=document.getElementById('f-name');
+      var phoneInp=document.getElementById('f-phone');
+      var pPhoneInp=document.getElementById('p-phone');
+      if(phoneInp) phoneInp.value=_otpPhone;
+      if(pPhoneInp) pPhoneInp.value=_otpPhone;
+      try{localStorage.setItem('cust_phone',_otpPhone);}catch(e){}
+      hideOTPScreen();
+      showNotif('✅ تم التحقق بنجاح!');
+    } else {
+      err.textContent='❌ رمز غير صحيح';err.style.display='block';
+      btn.textContent='تحقق';btn.disabled=false;
+      ['otp-d1','otp-d2','otp-d3','otp-d4'].forEach(function(id){document.getElementById(id).value='';});
+      document.getElementById('otp-d1').focus();
+    }
+  })
+  .catch(function(){
+    err.textContent='❌ تعذر الاتصال';err.style.display='block';
+    btn.textContent='تحقق';btn.disabled=false;
+  });
+}
+
+function resendOTP(){
+  document.getElementById('otp-step2').style.display='none';
+  document.getElementById('otp-step1').style.display='block';
+  var btn=document.querySelector('.otp-send-btn');
+  btn.textContent='إرسال رمز واتساب 💬';btn.disabled=false;
+  ['otp-d1','otp-d2','otp-d3','otp-d4'].forEach(function(id){document.getElementById(id).value='';});
+}
+
+function checkOTPStatus(){
+  try{
+    var verified=localStorage.getItem('otp_verified');
+    var skipped=localStorage.getItem('otp_skipped');
+    var phone=localStorage.getItem('otp_phone');
+    if(verified==='1'&&phone){
+      _otpPhone=phone; _otpVerified=true;
+      try{localStorage.setItem('cust_phone',phone);}catch(e){}
+      return;
+    }
+    if(skipped==='1') return;
+    // أول مرة - نعرض شاشة OTP
+    setTimeout(showOTPScreen, 1500);
+  }catch(e){}
+}
+
 // ═══ START THE APP (after all functions defined) ═══
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',function(){
@@ -1800,6 +2220,7 @@ if(document.readyState==='loading'){
 } else {
   startApp();
   setTimeout(hideSplash, 2000);
+  checkOTPStatus();
 }
 
 
