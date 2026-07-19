@@ -760,15 +760,23 @@ function startApp(){
     if(sl) sl.innerHTML='<div class="empty-stores">جاري تحميل المتاجر...</div>';
     // Use once first (works offline/online), then on for live updates
     loadAds();
+    // تحميل متجر نسيم مباشرة
     db.ref('stores').once('value',function(snap){
       storesData=snap.val()||{};
-      renderHome();
+      // نبحث عن متجر nas
+      var naseemId=null;
+      Object.keys(storesData).forEach(function(sid){
+        var info=(storesData[sid]||{}).info||{};
+        if(info.username==='nas') naseemId=sid;
+      });
+      if(naseemId){
+        currentStoreId=naseemId;
+        openStore(naseemId);
+      }
     });
-    
-    // Then listen for live updates
+    // live updates
     db.ref('stores').on('value',function(snap){
       storesData=snap.val()||{};
-      renderHome();
     });
     loadMyOrders();
     setTimeout(function(){
