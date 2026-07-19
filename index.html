@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>نسيم</title>
+<title>Nas</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <script src="https://cdn.moyasar.com/mpf/1.14.0/moyasar.js"></script>
@@ -442,7 +442,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 
 <script>
 // ═══ CONSTANTS ═══
-var STORE_ID='naseem'; // متجر نسيم مباشرة
+var STORE_ID='Nas'; // متجر Nas الأساسي
 var MOYASAR_KEY='pk_test_RE62uyizAra24TL5NWTmWtAGWrX8Bb49DroYiFmh';
 var moyasarInitialized=false;
 var OTP_API = 'https://alhay-api.tawsilalhay.workers.dev/otp';
@@ -529,7 +529,7 @@ function loadStore(){
   db.ref('stores/'+STORE_ID+'/info').on('value',function(s){
     storeInfo=s.val()||{};
     var el=document.getElementById('menu-title');
-    if(el) el.textContent=storeInfo.name||'نسيم';
+    if(el) el.textContent=storeInfo.name||'Nas';
   });
   // Categories/products
   db.ref('stores/'+STORE_ID+'/categories').on('value',function(s){
@@ -908,7 +908,7 @@ function renderPayMethods(){
           element: '.mysr-form',
           amount: total*100,
           currency: 'SAR',
-          description: 'طلب من نسيم',
+          description: 'طلب من Nas',
           publishable_api_key: MOYASAR_KEY,
           methods: moyMethods,
           country_code: 'SA',
@@ -1032,10 +1032,10 @@ var ST_LABELS={pending:'⏳ انتظار',accepted:'✅ تجهيز',on_the_way:'
 var ST_COLORS={pending:'background:#fff3cd;color:#856404',accepted:'background:#d1e7dd;color:#0f5132',on_the_way:'background:#d0f0c0;color:#1a5c1a',delivered:'background:#e8f5e9;color:#2D5016',rejected:'background:#f8d7da;color:#842029'};
 var PAY_NAMES={apple_pay:'Apple Pay 🍎',mada:'مدى 💳',cash:'نقداً 💵',network:'شبكة',both_cash:'نقداً + شبكة',network_only:'شبكة'};
 
-function saveMyOrders(){try{localStorage.setItem('my_orders_naseem',JSON.stringify(myOrders));}catch(e){}}
-function loadMyOrders(){try{var d=localStorage.getItem('my_orders_naseem');if(d)myOrders=JSON.parse(d);}catch(e){myOrders=[];}}
+function saveMyOrders(){try{localStorage.setItem('my_orders_Nas',JSON.stringify(myOrders));}catch(e){}}
+function loadMyOrders(){try{var d=localStorage.getItem('my_orders_Nas');if(d)myOrders=JSON.parse(d);}catch(e){myOrders=[];}}
 function addMyOrder(id,order){
-  myOrders.unshift({id:id,storeId:STORE_ID,storeName:'نسيم',name:order.name,total:order.total,subtotal:order.subtotal,deliveryFee:order.deliveryFee,items:order.items,orderType:order.orderType,payMethod:order.payMethod,status:'pending',createdAt:Date.now()});
+  myOrders.unshift({id:id,storeId:STORE_ID,storeName:'Nas',name:order.name,total:order.total,subtotal:order.subtotal,deliveryFee:order.deliveryFee,items:order.items,orderType:order.orderType,payMethod:order.payMethod,status:'pending',createdAt:Date.now()});
   if(myOrders.length>30) myOrders=myOrders.slice(0,30);
   saveMyOrders(); watchAllMyOrders(); updateActiveBadge();
 }
@@ -1089,7 +1089,7 @@ function renderMyOrders(){
     html+='<div class="my-order-card">'
       +'<div class="my-order-hdr"><span class="my-order-id">#'+o.id.slice(-4).toUpperCase()+'</span>'
       +'<span class="my-order-status" style="'+sc+'">'+st+'</span></div>'
-      +'<div style="font-size:13px;font-weight:800;color:#2D5016;margin-bottom:2px">نسيم</div>'
+      +'<div style="font-size:13px;font-weight:800;color:#2D5016;margin-bottom:2px">Nas</div>'
       +'<div style="font-size:11px;color:#aaa;margin-bottom:8px">'+fmtT(o.createdAt)+'</div>'
       +(itemsHtml?'<div style="margin-bottom:8px">'+itemsHtml+'</div>':'')
       +'<div style="background:#F7F3EE;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px">'
@@ -1114,8 +1114,8 @@ function trackOrder(id){
 }
 
 // ── CHAT ──
-function loadChatSeen(){try{custChatLastSeen=JSON.parse(localStorage.getItem('naseem_chat_seen')||'{}');}catch(e){}}
-function saveChatSeen(){try{localStorage.setItem('naseem_chat_seen',JSON.stringify(custChatLastSeen));}catch(e){}}
+function loadChatSeen(){try{custChatLastSeen=JSON.parse(localStorage.getItem('Nas_chat_seen')||'{}');}catch(e){}}
+function saveChatSeen(){try{localStorage.setItem('Nas_chat_seen',JSON.stringify(custChatLastSeen));}catch(e){}}
 function watchAllChats(){
   if(!db) return;
   loadChatSeen();
@@ -1178,8 +1178,8 @@ function closeChat(){
 }
 
 // ── RATING ──
-function getRated(){try{return JSON.parse(localStorage.getItem('rated_naseem')||'[]');}catch(e){return[];}}
-function markRated(id){var r=getRated();if(r.indexOf(id)===-1){r.push(id);localStorage.setItem('rated_naseem',JSON.stringify(r));}}
+function getRated(){try{return JSON.parse(localStorage.getItem('rated_Nas')||'[]');}catch(e){return[];}}
+function markRated(id){var r=getRated();if(r.indexOf(id)===-1){r.push(id);localStorage.setItem('rated_Nas',JSON.stringify(r));}}
 function isRated(id){return getRated().indexOf(id)>-1;}
 function checkRatingBell(oid){
   var bell=document.getElementById('bnav-rating'); if(!bell) return;
