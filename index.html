@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>توصيل الحي</title>
+<title>نسيم</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <script src="https://cdn.moyasar.com/mpf/1.14.0/moyasar.js"></script>
@@ -16,33 +16,6 @@
 body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction:rtl;color:#1A0A00;min-height:100vh}
 .app{max-width:480px;margin:0 auto;min-height:100vh}
 .screen{display:none}.screen.active{display:block}
-/* HOME */
-.home-hdr{background:#2D5016;color:#fff;padding:16px 20px;position:sticky;top:0;z-index:200}
-.home-hdr-title{font-size:22px;font-weight:800}
-.home-hdr-sub{font-size:12px;opacity:.8;margin-top:2px}
-.ad-banner{width:100%;height:25vh;min-height:170px;background:linear-gradient(135deg,#1a3a0a,#2D5016,#4a7c1f);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.ad-circle{position:absolute;border-radius:50%;background:rgba(255,255,255,.07)}
-.ad-slide{min-width:100%;height:100%;flex-shrink:0;position:relative;overflow:hidden}
-.ad-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;transition:all .3s}
-.ad-dot.active{background:#fff;width:20px;border-radius:4px}
-.ad-content{text-align:center;padding:20px;color:#fff;position:relative;z-index:2}
-.ad-title{font-size:24px;font-weight:800;margin-bottom:6px}
-.ad-text{font-size:13px;opacity:.9;line-height:1.6}
-.ad-badge{display:inline-block;background:#C9A84C;color:#1A0A00;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:800;margin-top:10px}
-.section-title{font-size:17px;font-weight:800;color:#2D5016;padding:14px 16px 8px}
-.store-list{padding:0 14px 80px;display:flex;flex-direction:column;gap:10px}
-.store-card{background:#fff;border-radius:14px;border:1px solid #E8DFD0;overflow:hidden;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.05);active{opacity:.9}}
-.store-img{width:100%;height:110px;background:linear-gradient(135deg,#2D5016,#4a7c1f);display:flex;align-items:center;justify-content:center;font-size:48px;position:relative}
-.store-img img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
-.store-open-badge{position:absolute;top:8px;right:8px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
-.badge-open{background:#2D5016;color:#fff}
-.badge-closed{background:#dc2626;color:#fff}
-.store-body{padding:10px 14px 12px}
-.store-name{font-size:16px;font-weight:800;color:#1A0A00;margin-bottom:2px}
-.store-type{font-size:12px;color:#8B7355;margin-bottom:6px}
-.store-meta{display:flex;gap:10px;font-size:11px;color:#8B7355}
-.store-rating{color:#C9A84C;font-weight:700}
-.empty-stores{text-align:center;padding:50px 20px;color:#8B7355;font-size:14px}
 /* HEADER */
 .hdr{background:#2D5016;color:#fff;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
 .hdr-title{font-size:18px;font-weight:800}
@@ -193,44 +166,18 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 /* MISC */
 .notif{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:#0891b2;color:#fff;padding:11px 18px;border-radius:12px;font-weight:700;font-size:13px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.2);text-align:center}
 .empty-msg{text-align:center;color:#8B7355;padding:40px 20px;font-size:14px}
+.loading-screen{display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:20px;color:#8B7355}
+.loader{width:40px;height:40px;border:4px solid #E8DFD0;border-top-color:#2D5016;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <div class="app">
 
-<!-- HOME -->
-<div id="s-home" class="screen active">
-  <div class="home-hdr">
-    <div class="home-hdr-title" id="app-hdr-title">توصيل الحي</div>
-    <div class="home-hdr-sub" id="app-hdr-sub">أطلب من متاجر حيك المفضلة</div>
-  </div>
-  <div id="ads-slider" style="width:100%;height:25vh;min-height:170px;position:relative;overflow:hidden;background:linear-gradient(135deg,#1a3a0a,#2D5016,#4a7c1f)">
-    <div id="ads-track" style="display:flex;height:100%;transition:transform 0.5s ease;will-change:transform"></div>
-    <div id="ads-dots" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10"></div>
-    <!-- Default banner - text loaded from Firebase -->
-    <div id="ads-default" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:absolute;inset:0">
-      <div class="ad-circle" style="width:160px;height:160px;top:-50px;left:-40px"></div>
-      <div class="ad-circle" style="width:100px;height:100px;bottom:-30px;right:10px"></div>
-      <div class="ad-content">
-        <div class="ad-title" id="banner-title">توصيل الحي 🛵</div>
-        <div class="ad-text" id="banner-text">من متاجر حيك مباشرة لبابك<br>سريع، سهل، وموثوق</div>
-        <div class="ad-badge" id="banner-badge-el">اطلب الآن</div>
-      </div>
-    </div>
-  </div>
-  <div class="section-title">المتاجر المتاحة</div>
-  <div class="store-list" id="store-list">
-    <div class="empty-stores">جاري تحميل المتاجر...</div>
-  </div>
-</div>
-
 <!-- MENU -->
-<div id="s-menu" class="screen">
+<div id="s-menu" class="screen active">
   <div class="hdr">
-    <div style="display:flex;align-items:center;gap:4px">
-      <button class="back-btn" onclick="goHome()">←</button>
-      <div class="hdr-title" id="menu-title">المتجر</div>
-    </div>
+    <div class="hdr-title" id="menu-title">نسيم</div>
     <button class="cart-btn" onclick="go('cart')">🛒 <span class="cart-badge" id="cart-badge" style="display:none">0</span></button>
   </div>
   <div class="tabs" id="tabs-wrap"></div>
@@ -494,11 +441,12 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#F7F3EE;direction
 <div id="notif" class="notif"></div>
 
 <script>
+// ═══ CONSTANTS ═══
+var STORE_ID='naseem'; // متجر نسيم مباشرة
 var MOYASAR_KEY='pk_test_RE62uyizAra24TL5NWTmWtAGWrX8Bb49DroYiFmh';
 var moyasarInitialized=false;
-
-
 var OTP_API = 'https://alhay-api.tawsilalhay.workers.dev/otp';
+
 var FB_CFG={
   apiKey:'AIzaSyCY31rq2Z608u7O6iFzE6',
   authDomain:'twsilya.firebaseapp.com',
@@ -508,9 +456,9 @@ var FB_CFG={
   messagingSenderId:'191977779172',
   appId:'1:191977779172:web:9297f1be500b4d1cc8e1f1'
 };
+
+// ═══ GLOBALS ═══
 var db=null;
-var storesData={};
-var currentStoreId=null;
 var storeInfo={};
 var storeMenu={};
 var storeStock={};
@@ -553,202 +501,55 @@ function checkPhone(inp,statusId){
 }
 
 // ── FIREBASE ──
-var adsData=[];
-var adsIndex=0;
-var adsTimer=null;
-
-function loadAds(){
-  if(!db) return;
-  // Load app header
-  db.ref('app_header').on('value',function(snap){
-    var d=snap.val()||{};
-    var t=document.getElementById('app-hdr-title');
-    var s=document.getElementById('app-hdr-sub');
-    if(t) t.textContent=d.title||'توصيل الحي';
-    if(s) s.textContent=d.sub||'أطلب من متاجر حيك المفضلة';
-  });
-  // Load banner text from Firebase
-  db.ref('banner').on('value',function(snap){
-    var d=snap.val()||{};
-    var t=document.getElementById('banner-title');
-    var tx=document.getElementById('banner-text');
-    var b=document.getElementById('banner-badge-el');
-    if(t) t.textContent=d.line1||'توصيل الحي 🛵';
-    if(tx) tx.innerHTML=(d.line2||'من متاجر حيك مباشرة لبابك')+'<br>'+(d.line3||'سريع، سهل، وموثوق');
-    if(b) b.textContent=d.badge||'اطلب الآن';
-  });
-  // Load ad images
-  db.ref('ads').on('value',function(snap){
-    var data=snap.val()||{};
-    var list=Object.keys(data).map(function(k){
-      var a=data[k]; a.id=k; return a;
-    }).filter(function(a){return a.visible!==false && a.image;});
-    adsData=list;
-    renderAds();
-  });
-}
-
-function renderAds(){
-  var track=document.getElementById('ads-track');
-  var dots=document.getElementById('ads-dots');
-  var def=document.getElementById('ads-default');
-  if(!track||!dots) return;
-  if(!adsData.length){
-    if(def) def.style.display='flex';
-    track.innerHTML=''; dots.innerHTML='';
-    if(adsTimer) clearInterval(adsTimer);
-    return;
-  }
-  if(def) def.style.display='none';
-  adsIndex=0;
-  // Build slides using img tags (better cross-origin support)
-  track.innerHTML=adsData.map(function(a){
-    return '<div class="ad-slide" style="position:relative;overflow:hidden">'
-      +'<img src="'+a.image+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" crossorigin="anonymous" onerror="this.style.display=\'none\'">'
-      +'</div>';
-  }).join('');
-  // Build dots
-  dots.innerHTML=adsData.map(function(a,i){
-    return '<div class="ad-dot'+(i===0?' active':'')+'" onclick="goToAd('+i+')"></div>';
-  }).join('');
-  // Start auto-slide
-  if(adsTimer) clearInterval(adsTimer);
-  if(adsData.length>1){
-    adsTimer=setInterval(function(){
-      adsIndex=(adsIndex+1)%adsData.length;
-      showAd(adsIndex);
-    },5000);
-  }
-  showAd(0);
-}
-
-function showAd(idx){
-  adsIndex=idx;
-  var track=document.getElementById('ads-track');
-  if(track) track.style.transform='translateX('+idx*100+'%)';
-  document.querySelectorAll('.ad-dot').forEach(function(d,i){
-    d.classList.toggle('active',i===idx);
-  });
-}
-
-function goToAd(idx){
-  if(adsTimer) clearInterval(adsTimer);
-  showAd(idx);
-  if(adsData.length>1){
-    adsTimer=setInterval(function(){
-      adsIndex=(adsIndex+1)%adsData.length;
-      showAd(adsIndex);
-    },5000);
-  }
-}
-
-var startAttempts=0;
 function startApp(){
-  // Wait for firebase library to load (retry up to 30 times = 9 seconds)
+  // Wait for firebase
   if(typeof firebase==='undefined'){
-    startAttempts++;
-    if(startAttempts<30){ setTimeout(startApp,300); return; }
-    var sl=document.getElementById('store-list');
-    if(sl) sl.innerHTML='<div class="empty-stores">تعذّر تحميل Firebase. تحقق من اتصال الإنترنت وأعد المحاولة.</div>';
+    setTimeout(startApp,300);
     return;
   }
   try{
     var app=(firebase.apps&&firebase.apps.length>0)?firebase.apps[0]:firebase.initializeApp(FB_CFG);
     db=firebase.database();
-    var sl=document.getElementById('store-list');
-    if(sl) sl.innerHTML='<div class="empty-stores">جاري تحميل المتاجر...</div>';
-    // Use once first (works offline/online), then on for live updates
-    loadAds();
-    db.ref('stores').once('value',function(snap){
-      storesData=snap.val()||{};
-      renderHome();
-    });
-    
-    // Then listen for live updates
-    db.ref('stores').on('value',function(snap){
-      storesData=snap.val()||{};
-      renderHome();
-    });
+    loadStore();
     loadMyOrders();
     setTimeout(function(){
       watchAllMyOrders();
       watchAllChats();
       updateActiveBadge();
       checkPendingRatings();
-    },2000);
-    restoreNav();
+    },1500);
   }catch(e){
-    var el=document.getElementById('store-list');
-    if(el) el.innerHTML='<div class="empty-stores">خطأ في الاتصال: '+e.message+'</div>';
+    showNotif('❌ خطأ في الاتصال');
   }
-}
-// ── HOME ──
-function renderHome(){
-  var el=document.getElementById('store-list');
-  var ids=Object.keys(storesData);
-  var shown=ids.filter(function(sid){
-    var info=(storesData[sid]||{}).info||{};
-    return info.visible!==false;
-  });
-  if(!shown.length){
-    if(Object.keys(storesData).length===0){
-      el.innerHTML='<div class="empty-stores">جاري تحميل المتاجر...</div>';
-    } else {
-      el.innerHTML='<div class="empty-stores">لا توجد متاجر متاحة حالياً</div>';
-    }
-    return;
-  }
-  var html='';
-  shown.forEach(function(sid){
-    var info=(storesData[sid]||{}).info||{};
-    var rats=(storesData[sid]||{}).ratings||{};
-    var rk=Object.keys(rats);
-    var avg=rk.length?(rk.reduce(function(s,k){return s+(rats[k].stars||0);},0)/rk.length).toFixed(1):null;
-    var isOpen=info.status==='open';
-    html+='<div class="store-card" onclick="openStore(\''+sid+'\')"><div class="store-img">'
-      +(info.logo?'<img src="'+info.logo+'">':san(info.emoji||'🏪'))
-      +'<span class="store-open-badge '+(isOpen?'badge-open':'badge-closed')+'">'+(isOpen?'مفتوح':'مغلق')+'</span></div>'
-      +'<div class="store-body"><div class="store-name">'+san(info.name||sid)+'</div>'
-      +'<div class="store-type">'+san(info.type||'')+'</div>'
-      +'<div class="store-meta">'
-      +(avg?'<span class="store-rating">⭐ '+avg+'</span>':'<span class="store-rating">⭐ جديد</span>')
-      +'<span>🛵 توصيل سريع</span></div></div></div>';
-  });
-  el.innerHTML=html;
 }
 
-// ── OPEN STORE ──
-function openStore(sid){
-  currentStoreId=sid;
-  cart=[];activeCat=null;
-  storeInfo={}; storeMenu={}; storeStock={}; storeSettings={}; storeZone=null;
-  if(!db)return;
-  // info
-  db.ref('stores/'+sid+'/info').on('value',function(s){
+function loadStore(){
+  if(!db) return;
+  // Store info
+  db.ref('stores/'+STORE_ID+'/info').on('value',function(s){
     storeInfo=s.val()||{};
     var el=document.getElementById('menu-title');
-    if(el) el.textContent=storeInfo.name||'المتجر';
+    if(el) el.textContent=storeInfo.name||'نسيم';
   });
-  // categories/products
-  db.ref('stores/'+sid+'/categories').on('value',function(s){
+  // Categories/products
+  db.ref('stores/'+STORE_ID+'/categories').on('value',function(s){
     storeMenu=s.val()||{};
     renderTabs(); renderItems();
   });
-  // stock
-  db.ref('stores/'+sid+'/stock').on('value',function(s){storeStock=s.val()||{};renderItems();});
-  // settings
-  db.ref('stores/'+sid+'/settings').on('value',function(s){
+  // Stock
+  db.ref('stores/'+STORE_ID+'/stock').on('value',function(s){storeStock=s.val()||{};renderItems();});
+  // Settings
+  db.ref('stores/'+STORE_ID+'/settings').on('value',function(s){
     storeSettings=s.val()||{deliveryFee:10,freeMin:40,deliveryType:'both',cash:true,cashType:'both',mada:true,applePay:true};
     updateOTButtons(); updateFloatBar(); updateFeeRow(); updateTotal();
   });
-  // zone
-  db.ref('stores/'+sid+'/delivery_zone').on('value',function(s){
+  // Zone
+  db.ref('stores/'+STORE_ID+'/delivery_zone').on('value',function(s){
     var z=s.val();
     storeZone=(z&&z.points&&z.points.length===4)?z.points:null;
     if(leafMap&&storeZone) drawZone();
   });
-  go('menu');
-  updateBadge(); renderTabs(); renderItems(); updateFloatBar();
+  renderTabs(); renderItems(); updateFloatBar();
 }
 
 // ── TABS & ITEMS ──
@@ -884,40 +685,17 @@ function go(name){
   var sc=document.getElementById('s-'+name); if(sc) sc.classList.add('active');
   var hideNav=['confirm','cart','status','payment','pickup'];
   var nav=document.getElementById('bnav');
-  if(nav) nav.style.display=(hideNav.indexOf(name)>-1||name==='home')?'none':'flex';
+  if(nav) nav.style.display=(hideNav.indexOf(name)>-1)?'none':'flex';
   if(name==='cart') renderCart();
   if(name==='confirm'){renderConfirmSummary();initMap();}
   if(name==='pickup') renderPickupSummary();
   if(name==='payment'){renderPayMethods();}
   if(name==='myorders') renderMyOrders();
-  try{sessionStorage.setItem('nav',JSON.stringify({screen:name,store:currentStoreId,cat:activeCat}));}catch(e){}
-}
-function goHome(){
-  currentStoreId=null;storeInfo={};storeMenu={};storeStock={};storeSettings={};storeZone=null;
-  cart=[];activeCat=null;updateBadge();
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
-  document.getElementById('s-home').classList.add('active');
-  var nav=document.getElementById('bnav');if(nav) nav.style.display='none';
-  try{sessionStorage.setItem('nav',JSON.stringify({screen:'home'}));}catch(e){}
 }
 function goTab(tab){
   document.querySelectorAll('.bnav-btn').forEach(function(b){b.classList.remove('act');});
   var btn=document.getElementById('bnav-'+tab);if(btn) btn.classList.add('act');
   go(tab);
-}
-function restoreNav(){
-  setTimeout(function(){
-    try{
-      var raw=sessionStorage.getItem('nav'); if(!raw) return;
-      var st=JSON.parse(raw);
-      if(st.screen==='home'||!st.store) return;
-      if(st.store&&storesData[st.store]){
-        openStore(st.store);
-        if(st.cat) activeCat=st.cat;
-        if(st.screen==='myorders') goTab('myorders');
-      }
-    }catch(e){}
-  },1500);
 }
 
 // ── CART ──
@@ -1104,10 +882,7 @@ function renderPayMethods(){
 
   if(hasElectronic && typeof Moyasar !== 'undefined'){
     if(formWrap) formWrap.style.display='block';
-    // Apple Pay methods only if enabled
     var moyMethods=['creditcard'];
-    // Note: applepay requires merchant validation server - skip for now
-    // if(ss.applePay!==false) moyMethods.push('applepay');
 
     var formEl=document.querySelector('.mysr-form');
     if(formEl) formEl.innerHTML='';
@@ -1133,7 +908,7 @@ function renderPayMethods(){
           element: '.mysr-form',
           amount: total*100,
           currency: 'SAR',
-          description: 'طلب من '+(storeInfo.name||'توصيل الحي'),
+          description: 'طلب من نسيم',
           publishable_api_key: MOYASAR_KEY,
           methods: moyMethods,
           country_code: 'SA',
@@ -1177,8 +952,6 @@ function renderPayMethods(){
   }
 }
 
-
-
 // ── CASH OPTIONS ──
 function showCashOptions(){
   var methods=document.getElementById('pay-methods');
@@ -1199,7 +972,7 @@ function showCashOptions(){
 
 // ── SUBMIT ORDER ──
 function doSubmit(payMethod){
-  if(!db||!currentStoreId){alert('خطأ في الاتصال');return;}
+  if(!db){alert('خطأ في الاتصال');return;}
   var isPickup=orderType==='pickup';
   var name=isPickup?document.getElementById('p-name').value.trim():document.getElementById('f-name').value.trim();
   var phone=isPickup?document.getElementById('p-phone').value.trim():document.getElementById('f-phone').value.trim();
@@ -1212,7 +985,7 @@ function doSubmit(payMethod){
     orderType:orderType,payMethod:payMethod,notes:notes||null,
     houseImage:houseImg||null,status:'pending',createdAt:Date.now()
   };
-  var ref=db.ref('stores/'+currentStoreId+'/orders').push();
+  var ref=db.ref('stores/'+STORE_ID+'/orders').push();
   currentOrderId=ref.key;
   ref.set(order,function(err){
     if(err){alert('خطأ في إرسال الطلب');return;}
@@ -1246,8 +1019,8 @@ function renderStatus(status,ts){
   if(status==='delivered'&&currentOrderId) checkRatingBell(currentOrderId);
 }
 function watchOrder(id){
-  if(!db||!currentStoreId) return;
-  db.ref('stores/'+currentStoreId+'/orders/'+id).on('value',function(snap){
+  if(!db) return;
+  db.ref('stores/'+STORE_ID+'/orders/'+id).on('value',function(snap){
     var d=snap.val(); if(!d) return;
     renderStatus(d.status,d.timestamps||{});
     document.getElementById('st-num').textContent='#'+id.slice(-4).toUpperCase();
@@ -1259,10 +1032,10 @@ var ST_LABELS={pending:'⏳ انتظار',accepted:'✅ تجهيز',on_the_way:'
 var ST_COLORS={pending:'background:#fff3cd;color:#856404',accepted:'background:#d1e7dd;color:#0f5132',on_the_way:'background:#d0f0c0;color:#1a5c1a',delivered:'background:#e8f5e9;color:#2D5016',rejected:'background:#f8d7da;color:#842029'};
 var PAY_NAMES={apple_pay:'Apple Pay 🍎',mada:'مدى 💳',cash:'نقداً 💵',network:'شبكة',both_cash:'نقداً + شبكة',network_only:'شبكة'};
 
-function saveMyOrders(){try{localStorage.setItem('my_orders_v3',JSON.stringify(myOrders));}catch(e){}}
-function loadMyOrders(){try{var d=localStorage.getItem('my_orders_v3');if(d)myOrders=JSON.parse(d);}catch(e){myOrders=[];}}
+function saveMyOrders(){try{localStorage.setItem('my_orders_naseem',JSON.stringify(myOrders));}catch(e){}}
+function loadMyOrders(){try{var d=localStorage.getItem('my_orders_naseem');if(d)myOrders=JSON.parse(d);}catch(e){myOrders=[];}}
 function addMyOrder(id,order){
-  myOrders.unshift({id:id,storeId:currentStoreId,storeName:storeInfo.name||'المتجر',name:order.name,total:order.total,subtotal:order.subtotal,deliveryFee:order.deliveryFee,items:order.items,orderType:order.orderType,payMethod:order.payMethod,status:'pending',createdAt:Date.now()});
+  myOrders.unshift({id:id,storeId:STORE_ID,storeName:'نسيم',name:order.name,total:order.total,subtotal:order.subtotal,deliveryFee:order.deliveryFee,items:order.items,orderType:order.orderType,payMethod:order.payMethod,status:'pending',createdAt:Date.now()});
   if(myOrders.length>30) myOrders=myOrders.slice(0,30);
   saveMyOrders(); watchAllMyOrders(); updateActiveBadge();
 }
@@ -1270,7 +1043,7 @@ function watchAllMyOrders(){
   if(!db) return;
   myOrders.forEach(function(o){
     if(o.status==='delivered'||o.status==='rejected') return;
-    db.ref('stores/'+(o.storeId||'naseem')+'/orders/'+o.id+'/status').on('value',function(snap){
+    db.ref('stores/'+STORE_ID+'/orders/'+o.id+'/status').on('value',function(snap){
       var st=snap.val(); if(!st) return;
       myOrders.forEach(function(mo){
         if(mo.id===o.id){
@@ -1290,10 +1063,8 @@ function updateActiveBadge(){
   if(b){b.textContent=n;b.style.display=n>0?'flex':'none';}
 }
 function isChatOpen(o){
-  // Chat available from moment order is placed until 30 min after delivery
   if(o.status==='pending'||o.status==='accepted'||o.status==='on_the_way') return true;
   if(o.status==='delivered'){
-    // 30 min after delivery time (use deliveredAt if saved, else createdAt as fallback)
     var deliveredAt=o.deliveredAt||o.createdAt;
     return(Date.now()-deliveredAt)<30*60*1000;
   }
@@ -1318,7 +1089,7 @@ function renderMyOrders(){
     html+='<div class="my-order-card">'
       +'<div class="my-order-hdr"><span class="my-order-id">#'+o.id.slice(-4).toUpperCase()+'</span>'
       +'<span class="my-order-status" style="'+sc+'">'+st+'</span></div>'
-      +'<div style="font-size:13px;font-weight:800;color:#2D5016;margin-bottom:2px">'+san(o.storeName||'المتجر')+'</div>'
+      +'<div style="font-size:13px;font-weight:800;color:#2D5016;margin-bottom:2px">نسيم</div>'
       +'<div style="font-size:11px;color:#aaa;margin-bottom:8px">'+fmtT(o.createdAt)+'</div>'
       +(itemsHtml?'<div style="margin-bottom:8px">'+itemsHtml+'</div>':'')
       +'<div style="background:#F7F3EE;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px">'
@@ -1330,28 +1101,27 @@ function renderMyOrders(){
       +'<span style="background:#E8DFD0;padding:3px 8px;border-radius:20px">'+typeLabel+'</span>'
       +(payLabel?'<span style="background:#E8DFD0;padding:3px 8px;border-radius:20px">'+payLabel+'</span>':'')
       +'</div>'
-      +(o.status!=='delivered'&&o.status!=='rejected'?'<button class="track-btn" onclick="trackOrder(\''+o.id+'\',\''+o.storeId+'\')" style="margin-bottom:6px">🔍 تتبع الطلب</button>':'')
-      +(isChatOpen(o)?'<button class="chat-btn-cust" onclick="openChat(\''+o.id+'\',\''+o.storeId+'\')">💬 محادثة المتجر'+(unread>0?'<span class="chat-unread">'+unread+'</span>':'')+'</button>':'')
+      +(o.status!=='delivered'&&o.status!=='rejected'?'<button class="track-btn" onclick="trackOrder(\''+o.id+'\')" style="margin-bottom:6px">🔍 تتبع الطلب</button>':'')
+      +(isChatOpen(o)?'<button class="chat-btn-cust" onclick="openChat(\''+o.id+'\')">💬 محادثة المتجر'+(unread>0?'<span class="chat-unread">'+unread+'</span>':'')+'</button>':'')
       +'</div>';
   });
   el.innerHTML=html;
 }
-function trackOrder(id,sid){
-  currentOrderId=id; if(sid) currentStoreId=sid;
+function trackOrder(id){
+  currentOrderId=id;
   document.getElementById('st-num').textContent='#'+id.slice(-4).toUpperCase();
   watchOrder(id); go('status');
 }
 
 // ── CHAT ──
-function loadChatSeen(){try{custChatLastSeen=JSON.parse(localStorage.getItem('cust_chat_seen')||'{}');}catch(e){}}
-function saveChatSeen(){try{localStorage.setItem('cust_chat_seen',JSON.stringify(custChatLastSeen));}catch(e){}}
+function loadChatSeen(){try{custChatLastSeen=JSON.parse(localStorage.getItem('naseem_chat_seen')||'{}');}catch(e){}}
+function saveChatSeen(){try{localStorage.setItem('naseem_chat_seen',JSON.stringify(custChatLastSeen));}catch(e){}}
 function watchAllChats(){
   if(!db) return;
   loadChatSeen();
   myOrders.forEach(function(o){
     if(!isChatOpen(o)) return;
-    var sid=o.storeId||'naseem';
-    db.ref('stores/'+sid+'/chats/'+o.id).on('value',function(snap){
+    db.ref('stores/'+STORE_ID+'/chats/'+o.id).on('value',function(snap){
       var msgs=snap.val()||{};
       var lastSeen=custChatLastSeen[o.id]||0;
       var unread=0;
@@ -1359,28 +1129,27 @@ function watchAllChats(){
       var prev=custChatUnread[o.id]||0;
       custChatUnread[o.id]=unread;
       if(unread>prev&&currentChatId!==o.id) showNotif('💬 رسالة جديدة من المتجر');
-      if(currentChatId===o.id) loadChatMsgs(o.id,sid);
+      if(currentChatId===o.id) loadChatMsgs(o.id);
       else if(document.getElementById('s-myorders').classList.contains('active')) renderMyOrders();
     });
   });
 }
-function openChat(oid,sid){
+function openChat(oid){
   currentChatId=oid;
   custChatLastSeen[oid]=Date.now(); saveChatSeen();
   custChatUnread[oid]=0;
-  sid=sid||currentStoreId||'naseem';
   document.getElementById('chat-sub').textContent='طلب #'+oid.slice(-4).toUpperCase();
   document.getElementById('chat-overlay').style.display='flex';
   var o=myOrders.find(function(x){return x.id===oid;})||{};
   var area=document.getElementById('chat-input-area');
   if(isChatOpen(o)) area.innerHTML='<div class="chat-bar"><input class="chat-inp" id="chat-inp" placeholder="اكتب رسالة..." onkeypress="if(event.key===\'Enter\')sendChatMsg()"><button class="chat-send" onclick="sendChatMsg()">➤</button></div>';
   else area.innerHTML='<div class="chat-closed">انتهت فترة المحادثة</div>';
-  if(db) db.ref('stores/'+sid+'/chats/'+oid).on('value',function(){loadChatMsgs(oid,sid);});
-  loadChatMsgs(oid,sid);
+  if(db) db.ref('stores/'+STORE_ID+'/chats/'+oid).on('value',function(){loadChatMsgs(oid);});
+  loadChatMsgs(oid);
 }
-function loadChatMsgs(oid,sid){
+function loadChatMsgs(oid){
   if(!db) return;
-  db.ref('stores/'+sid+'/chats/'+oid).once('value',function(snap){
+  db.ref('stores/'+STORE_ID+'/chats/'+oid).once('value',function(snap){
     var msgs=snap.val()||{};
     var body=document.getElementById('chat-body'); if(!body||currentChatId!==oid) return;
     var keys=Object.keys(msgs).sort(function(a,b){return(msgs[a].at||0)-(msgs[b].at||0);});
@@ -1399,9 +1168,7 @@ function loadChatMsgs(oid,sid){
 function sendChatMsg(){
   var inp=document.getElementById('chat-inp'); if(!inp) return;
   var text=inp.value.trim(); if(!text||!currentChatId||!db) return;
-  var o=myOrders.find(function(x){return x.id===currentChatId;})||{};
-  var sid=o.storeId||currentStoreId||'naseem';
-  db.ref('stores/'+sid+'/chats/'+currentChatId).push({from:'cust',text:text,at:Date.now()});
+  db.ref('stores/'+STORE_ID+'/chats/'+currentChatId).push({from:'cust',text:text,at:Date.now()});
   inp.value='';
 }
 function closeChat(){
@@ -1411,8 +1178,8 @@ function closeChat(){
 }
 
 // ── RATING ──
-function getRated(){try{return JSON.parse(localStorage.getItem('rated_v2')||'[]');}catch(e){return[];}}
-function markRated(id){var r=getRated();if(r.indexOf(id)===-1){r.push(id);localStorage.setItem('rated_v2',JSON.stringify(r));}}
+function getRated(){try{return JSON.parse(localStorage.getItem('rated_naseem')||'[]');}catch(e){return[];}}
+function markRated(id){var r=getRated();if(r.indexOf(id)===-1){r.push(id);localStorage.setItem('rated_naseem',JSON.stringify(r));}}
 function isRated(id){return getRated().indexOf(id)>-1;}
 function checkRatingBell(oid){
   var bell=document.getElementById('bnav-rating'); if(!bell) return;
@@ -1445,9 +1212,7 @@ function setStar(val){
 }
 function submitRating(){
   if(!selStars||!ratingOid||!db) return;
-  var o=myOrders.find(function(x){return x.id===ratingOid;})||{};
-  var sid=o.storeId||currentStoreId||'naseem';
-  db.ref('stores/'+sid+'/ratings').push({orderId:ratingOid,stars:selStars,note:document.getElementById('rating-note').value.trim()||null,createdAt:Date.now()},function(err){
+  db.ref('stores/'+STORE_ID+'/ratings').push({orderId:ratingOid,stars:selStars,note:document.getElementById('rating-note').value.trim()||null,createdAt:Date.now()},function(err){
     if(!err){
       markRated(ratingOid); closeRating(); showNotif('شكراً على تقييمك! ⭐');
       checkPendingRatings();
@@ -1455,13 +1220,7 @@ function submitRating(){
   });
 }
 
-// ═══ START THE APP (after all functions defined) ═══
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',startApp);
-} else {
-  startApp();
-}
-// ── OTP SYSTEM ──
+// ═══ OTP SYSTEM ═══
 var _otpPhone = '';
 var _otpVerified = false;
 var _otpVerifiedPickup = false;
@@ -1589,34 +1348,18 @@ function resetOTP(ctx){
   for(var i=1;i<=4;i++){var d=document.getElementById(prefix+'-otp-'+i);if(d)d.value='';}
 }
 
-function initOTPSection(ctx){
-  try{
-    var phone=localStorage.getItem('otp_phone');
-    var verified=localStorage.getItem('otp_verified');
-    if(verified==='1'&&phone){
-      _otpPhone=phone;
-      if(ctx==='delivery') _otpVerified=true;
-      if(ctx==='pickup') _otpVerifiedPickup=true;
-      document.getElementById('otp-unverified-'+ctx).style.display='none';
-      var verDiv=document.getElementById('otp-verified-'+ctx);
-      if(verDiv) verDiv.style.display='flex';
-      var verPhone=document.getElementById('otp-verified-phone-'+ctx);
-      if(verPhone) verPhone.textContent=phone;
-      var fPhone=document.getElementById('f-phone');
-      var pPhone=document.getElementById('p-phone');
-      if(fPhone&&!fPhone.value){fPhone.value=phone;}
-      if(pPhone&&!pPhone.value){pPhone.value=phone;}
-      try{localStorage.setItem('cust_phone',phone);}catch(e){}
-      var otpInp=document.getElementById('otp-phone-input'+(ctx==='pickup'?'-pickup':''));
-      if(otpInp) otpInp.value=phone;
-    }
-  }catch(e){}
-}
-
 function otpBack(e,el,prevNum){
   if(e.key==='Backspace'&&!el.value&&prevNum>0){
-    document.getElementById('otp-d'+prevNum).focus();
+    var target=document.getElementById((el.id.includes('p')?'p':'d')+'-otp-'+prevNum);
+    if(target) target.focus();
   }
+}
+
+// ═══ START ═══
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',startApp);
+} else {
+  startApp();
 }
 
 </script>
