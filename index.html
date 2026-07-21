@@ -7,6 +7,8 @@
 <title>نسيم | Naseem Coffee</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --primary:#3F4A32;--primary-dark:#2C3423;--primary-light:#5A684A;
@@ -80,6 +82,9 @@ img{display:block;max-width:100%}
 .gallery::-webkit-scrollbar{display:none}
 .gallery img{width:100%;min-width:100%;height:220px;object-fit:cover;border-radius:16px;scroll-snap-align:center}
 .qty{display:flex;align-items:center;gap:16px;background:var(--secondary-light);border-radius:12px;padding:8px 14px}
+.sizeopt{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border:1.5px solid var(--line);border-radius:12px;margin-bottom:8px;font-weight:500;transition:.15s}
+.sizeopt.on{border-color:var(--primary);background:var(--secondary-light)}
+.sizeopt .sp{color:var(--primary);font-weight:700}
 .qty button{font-size:20px;color:var(--primary);width:26px}
 .qty span{font-weight:600;min-width:22px;text-align:center}
 
@@ -310,11 +315,12 @@ label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin:0 0
     <div class="gallery" id="pGallery"></div>
     <h3 id="pName" style="margin:0 0 4px;font-size:20px"></h3>
     <p id="pDesc" style="color:var(--muted);margin:0 0 16px"></p>
+    <div id="pSizes" class="hidden" style="margin-bottom:16px"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <div class="price" style="font-size:22px" id="pPrice"></div>
       <div class="qty"><button onclick="qtyChange(-1)">&#8722;</button><span id="pQty">1</span><button onclick="qtyChange(1)">+</button></div>
     </div>
-    <button class="btn" onclick="addToCart()"><span data-i="addCart">إضافة للسلة</span></button>
+    <button class="btn" id="btnAddCart" onclick="addToCart()"><span data-i="addCart">إضافة للسلة</span></button>
   </div>
 </div>
 
@@ -369,7 +375,7 @@ var I18N = {
     time:"الوقت", method:"طريقة الاستلام", eta:"الوقت المتوقع",
     st_received:"تم استلام الطلب", st_preparing:"جاري تجهيز الطلب",
     st_ready:"جاهز للاستلام", st_out:"خرج للتوصيل", st_delivered:"تم التسليم",
-    noProducts:"لا توجد منتجات", added:"تمت الإضافة", processing:"جاري المعالجة...",
+    noProducts:"لا توجد منتجات", added:"تمت الإضافة", processing:"جاري المعالجة...", pickSize:"اختر الحجم أولاً",
     activeOrders:"النشطة", pastOrders:"السابقة", noOrders:"لا توجد طلبات",
     rateExp:"قيّم تجربتك", rateSend:"إرسال التقييم", rateThanks:"شكراً لتقييمك",
     commentOpt:"تعليق (اختياري)", minutes:"دقيقة", sar:"ر.س", locateFail:"تعذر تحديد الموقع"
@@ -395,7 +401,7 @@ var I18N = {
     time:"Time", method:"Method", eta:"Estimated time",
     st_received:"Order received", st_preparing:"Preparing your order",
     st_ready:"Ready for pickup", st_out:"Out for delivery", st_delivered:"Delivered",
-    noProducts:"No products", added:"Added", processing:"Processing...",
+    noProducts:"No products", added:"Added", processing:"Processing...", pickSize:"Choose a size first",
     activeOrders:"Active", pastOrders:"Past", noOrders:"No orders",
     rateExp:"Rate your experience", rateSend:"Submit rating", rateThanks:"Thanks for your rating",
     commentOpt:"Comment (optional)", minutes:"min", sar:"SAR", locateFail:"Could not get your location"
@@ -410,7 +416,7 @@ var CHAT_LANG = localStorage.getItem('nsm_chatlang') || LANG;
 var STATE = {
   mode:null, banners:[], categories:[], products:[], activeCat:'all',
   cart: JSON.parse(localStorage.getItem('nsm_cart') || '[]'),
-  sheetProduct:null, sheetQty:1,
+  sheetProduct:null, sheetQty:1, sheetSize:null,
   settings:{ fee:0, freeThreshold:0, polygon:[] },
   customer:{ name:'', phone:'' }, location:null,
   orderId: localStorage.getItem('nsm_order') || null, order:null,
@@ -436,6 +442,7 @@ function boot(){
 function onReady(){
   loadSettings(); loadBanners(); loadCatalog(); initMessaging();
   db.collection('users').doc(uid).set({ lang:LANG, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+  setTimeout(restoreScreen, 400);
 }
 
 function setLang(l, cycle){
@@ -460,6 +467,8 @@ function applyLang(){
 }
 function locName(o, field){ field = field || 'name'; return o[field+'_'+LANG] || o[field+'_ar'] || o[field+'_en'] || ''; }
 
+/* الشاشات الآمنة للاستعادة بعد إعادة التحميل (نتجنب الدفع/الخريطة لأسباب أمنية) */
+var SAFE_SCREENS = { 's-home':1, 's-orders':1, 's-track':1, 's-chat':1, 's-cart':1, 's-splash':1 };
 function go(id){
   var s = document.querySelectorAll('.screen');
   for(var i=0;i<s.length;i++) s[i].classList.remove('active');
@@ -467,6 +476,17 @@ function go(id){
   window.scrollTo(0,0);
   if(id === 's-map') setTimeout(initMap, 120);
   if(id === 's-home') startSlider();
+  // احفظ آخر شاشة آمنة لاستعادتها بعد refresh
+  if(SAFE_SCREENS[id]) localStorage.setItem('nsm_screen', id);
+}
+function restoreScreen(){
+  var last = localStorage.getItem('nsm_screen');
+  if(last && SAFE_SCREENS[last] && last !== 's-splash'){
+    if((last==='s-track'||last==='s-chat') && !STATE.orderId){ go('s-home'); return; }
+    if(last==='s-track' || last==='s-chat'){ if(STATE.orderId){ watchOrder(STATE.orderId); } }
+    if(last==='s-orders'){ loadMyOrders(); }
+    go(last);
+  }
 }
 function toast(m){
   var el = document.getElementById('toast');
@@ -550,6 +570,14 @@ function renderCats(){
   box.innerHTML = h;
 }
 function pickCat(id){ STATE.activeCat = id; renderCats(); renderProducts(); }
+function prodPriceLabel(p){
+  if(p.pricingType==='sizes' && p.sizes && p.sizes.length){
+    var pr = p.sizes.map(function(s){ return Number(s.price); });
+    var mn = Math.min.apply(null,pr);
+    return (LANG==='ar'?'من ':'from ') + money(mn);
+  }
+  return money(p.price);
+}
 function renderProducts(){
   var box = document.getElementById('plist');
   var list = STATE.products.filter(function(p){ return STATE.activeCat==='all' || p.categoryId===STATE.activeCat; });
@@ -558,15 +586,18 @@ function renderProducts(){
   list.forEach(function(p){
     var img = p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : '<div class="pthumb"></div>';
     h += '<div class="pcard" onclick="openProduct(\'' + p.id + '\')">' + img +
-      '<div class="pinfo"><b>' + esc(locName(p)) + '</b><p>' + esc(locName(p,'desc')) + '</p><div class="price">' + money(p.price) + '</div></div>' +
+      '<div class="pinfo"><b>' + esc(locName(p)) + '</b><p>' + esc(locName(p,'desc')) + '</p><div class="price">' + prodPriceLabel(p) + '</div></div>' +
       '<div class="addbtn">+</div></div>';
   });
   box.innerHTML = h;
 }
 
+function hasSizes(p){ return p.pricingType === 'sizes' && p.sizes && p.sizes.length; }
+function sizeName(s){ return (LANG==='en' ? (s.name_en||s.name_ar) : (s.name_ar||s.name_en)) || ''; }
+
 function openProduct(id){
   var p = STATE.products.filter(function(x){ return x.id===id; })[0]; if(!p) return;
-  STATE.sheetProduct = p; STATE.sheetQty = 1;
+  STATE.sheetProduct = p; STATE.sheetQty = 1; STATE.sheetSize = null;
   var imgs = [];
   if(p.image) imgs.push(p.image);
   (p.images||[]).forEach(function(u){ if(u) imgs.push(u); });
@@ -575,20 +606,55 @@ function openProduct(id){
   document.getElementById('pGallery').innerHTML = g;
   document.getElementById('pName').textContent = locName(p);
   document.getElementById('pDesc').textContent = locName(p,'desc');
-  document.getElementById('pPrice').textContent = money(p.price);
   document.getElementById('pQty').textContent = '1';
+
+  var sizesBox = document.getElementById('pSizes');
+  var addBtn = document.getElementById('btnAddCart');
+  if(hasSizes(p)){
+    var h = '';
+    p.sizes.forEach(function(s, i){
+      h += '<div class="sizeopt" onclick="pickSize(' + i + ')" data-si="' + i + '"><span>' + esc(sizeName(s)) + '</span><span class="sp">' + money(s.price) + '</span></div>';
+    });
+    sizesBox.innerHTML = h; sizesBox.classList.remove('hidden');
+    document.getElementById('pPrice').textContent = '';
+    addBtn.disabled = true;               // لا يُضاف حتى يُختار حجم
+  } else {
+    sizesBox.classList.add('hidden'); sizesBox.innerHTML = '';
+    document.getElementById('pPrice').textContent = money(p.price);
+    addBtn.disabled = false;
+  }
   document.getElementById('sheetP').classList.add('open');
+}
+function pickSize(i){
+  var p = STATE.sheetProduct; if(!p || !hasSizes(p)) return;
+  STATE.sheetSize = p.sizes[i];
+  var opts = document.querySelectorAll('#pSizes .sizeopt');
+  for(var k=0;k<opts.length;k++) opts[k].classList.toggle('on', Number(opts[k].getAttribute('data-si'))===i);
+  document.getElementById('pPrice').textContent = money(p.sizes[i].price);
+  document.getElementById('btnAddCart').disabled = false;
 }
 function closeSheet(){ document.getElementById('sheetP').classList.remove('open'); }
 function qtyChange(d){ STATE.sheetQty = Math.max(1, STATE.sheetQty + d); document.getElementById('pQty').textContent = STATE.sheetQty; }
 
 function addToCart(){
   var p = STATE.sheetProduct; if(!p) return;
-  var f = STATE.cart.filter(function(i){ return i.id===p.id; })[0];
+  var sized = hasSizes(p);
+  if(sized && !STATE.sheetSize){ toast(t('pickSize')); return; }
+  var unitPrice = sized ? Number(STATE.sheetSize.price) : Number(p.price);
+  var sizeAr = sized ? (STATE.sheetSize.name_ar||STATE.sheetSize.name_en) : '';
+  var sizeEn = sized ? (STATE.sheetSize.name_en||STATE.sheetSize.name_ar) : '';
+  // عنصر فريد حسب المنتج + الحجم
+  var key = p.id + '::' + (sizeAr||'');
+  var f = STATE.cart.filter(function(i){ return (i.id + '::' + (i.sizeAr||'')) === key; })[0];
   if(f) f.qty += STATE.sheetQty;
-  else STATE.cart.push({ id:p.id, name_ar:p.name_ar, name_en:p.name_en, price:Number(p.price), qty:STATE.sheetQty, image:p.image||'' });
+  else STATE.cart.push({
+    id:p.id, name_ar:p.name_ar, name_en:p.name_en,
+    price:unitPrice, qty:STATE.sheetQty, image:p.image||'',
+    sizeAr:sizeAr, sizeEn:sizeEn
+  });
   saveCart(); closeSheet(); toast(t('added'));
 }
+function itemSizeName(i){ return LANG==='en' ? (i.sizeEn||i.sizeAr||'') : (i.sizeAr||i.sizeEn||''); }
 function saveCart(){ localStorage.setItem('nsm_cart', JSON.stringify(STATE.cart)); renderCart(); }
 function cartSubtotal(){ return STATE.cart.reduce(function(s,i){ return s+i.price*i.qty; }, 0); }
 function currentFee(){
@@ -614,7 +680,7 @@ function renderCart(){
   STATE.cart.forEach(function(i, idx){
     var img = i.image ? '<img src="' + esc(i.image) + '" alt="">' : '<div class="pthumb"></div>';
     h += '<div class="pcard">' + img +
-      '<div class="pinfo"><b>' + esc(locName(i)) + '</b><div class="price">' + money(i.price*i.qty) + '</div></div>' +
+      '<div class="pinfo"><b>' + esc(locName(i)) + (itemSizeName(i)?' <span style="color:var(--muted);font-weight:400;font-size:13px">('+esc(itemSizeName(i))+')</span>':'') + '</b><div class="price">' + money(i.price*i.qty) + '</div></div>' +
       '<div class="qty"><button onclick="cartQty(' + idx + ',-1)">&#8722;</button><span>' + i.qty + '</span><button onclick="cartQty(' + idx + ',1)">+</button></div></div>';
   });
   box.innerHTML = h;
@@ -658,36 +724,27 @@ function phoneNext(){
   go('s-pay'); renderPaySummary();
 }
 
-var mapsLoaded = false;
-function loadMaps(cb){
-  if(mapsLoaded){ cb(); return; }
-  var s = document.createElement('script');
-  s.src = 'https://maps.googleapis.com/maps/api/js?key=' + CONFIG.mapsApiKey + '&libraries=geometry';
-  s.onload = function(){ mapsLoaded = true; cb(); };
-  s.onerror = function(){ toast('Google Maps failed to load'); };
-  document.head.appendChild(s);
-}
 function initMap(){
-  loadMaps(function(){
-    if(!STATE.map){
-      STATE.map = new google.maps.Map(document.getElementById('mapPick'), {
-        center: CONFIG.defaultCenter, zoom:14, disableDefaultUI:true, zoomControl:true,
-        gestureHandling:'greedy', styles:[{featureType:'poi',stylers:[{visibility:'off'}]}]
-      });
-      STATE.map.addListener('idle', function(){ var c = STATE.map.getCenter(); checkZone({ lat:c.lat(), lng:c.lng() }); });
-      if(STATE.settings.polygon.length >= 3){
-        new google.maps.Polygon({ paths:STATE.settings.polygon, strokeColor:'#3F4A32', strokeWeight:2, fillColor:'#3F4A32', fillOpacity:.12, map:STATE.map });
-      }
-      locateMe();
+  if(typeof L === 'undefined'){ toast('Map library not loaded'); return; }
+  if(!STATE.map){
+    STATE.map = L.map('mapPick',{ zoomControl:true, attributionControl:false })
+      .setView([CONFIG.defaultCenter.lat, CONFIG.defaultCenter.lng], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19 }).addTo(STATE.map);
+    if(STATE.settings.polygon.length >= 3){
+      L.polygon(STATE.settings.polygon.map(function(p){return [p.lat,p.lng];}),{
+        color:'#3F4A32', weight:2, fillColor:'#3F4A32', fillOpacity:.12
+      }).addTo(STATE.map);
     }
-    google.maps.event.trigger(STATE.map, 'resize');
-  });
+    // عند تحريك الخريطة، المركز = موقع العميل (البِن ثابت في المنتصف)
+    STATE.map.on('moveend', function(){ var c = STATE.map.getCenter(); checkZone({ lat:c.lat, lng:c.lng }); });
+    locateMe();
+  }
+  setTimeout(function(){ STATE.map.invalidateSize(); var c = STATE.map.getCenter(); checkZone({ lat:c.lat, lng:c.lng }); }, 200);
 }
 function locateMe(){
   if(!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(function(pos){
-    var p = { lat:pos.coords.latitude, lng:pos.coords.longitude };
-    if(STATE.map){ STATE.map.setCenter(p); STATE.map.setZoom(16); }
+    if(STATE.map){ STATE.map.setView([pos.coords.latitude, pos.coords.longitude], 16); }
   }, function(){ toast(t('locateFail')); }, { enableHighAccuracy:true, timeout:8000 });
 }
 function pointInPolygon(pt, poly){
@@ -718,7 +775,7 @@ function mapNext(){
 function backFromPay(){ go('s-phone'); }
 function renderPaySummary(){
   var h = '';
-  STATE.cart.forEach(function(i){ h += '<div class="crow"><span>' + esc(locName(i)) + ' &#215; ' + i.qty + '</span><span>' + money(i.price*i.qty) + '</span></div>'; });
+  STATE.cart.forEach(function(i){ h += '<div class="crow"><span>' + esc(locName(i)) + (itemSizeName(i)?' ('+esc(itemSizeName(i))+')':'') + ' &#215; ' + i.qty + '</span><span>' + money(i.price*i.qty) + '</span></div>'; });
   if(STATE.mode === 'delivery'){ var f = currentFee(); h += '<div class="crow"><span>' + t('deliveryFee') + '</span><span>' + (f===0?t('free'):money(f)) + '</span></div>'; }
   h += '<div class="crow total"><span>' + t('total') + '</span><span>' + money(cartTotal()) + '</span></div>';
   document.getElementById('paySummary').innerHTML = h;
@@ -784,7 +841,7 @@ function createOrder(method, chargeId){
     var order = {
       orderNo:String(no), uid:uid, type:STATE.mode,
       status: STATE.mode==='delivery' ? 'received' : 'preparing',
-      items: STATE.cart.map(function(i){ return { id:i.id, name_ar:i.name_ar||'', name_en:i.name_en||'', price:i.price, qty:i.qty }; }),
+      items: STATE.cart.map(function(i){ return { id:i.id, name_ar:i.name_ar||'', name_en:i.name_en||'', price:i.price, qty:i.qty, sizeName:(i.sizeAr||''), sizeAr:(i.sizeAr||''), sizeEn:(i.sizeEn||'') }; }),
       subtotal:Number(cartSubtotal().toFixed(2)), deliveryFee:Number(currentFee().toFixed(2)), total:Number(cartTotal().toFixed(2)),
       paymentMethod:method, chargeId:chargeId, paid:true,
       customerName:STATE.customer.name||'', customerPhone:STATE.customer.phone||'',
@@ -833,7 +890,7 @@ function renderTracking(o){
   document.getElementById('tTimeline').innerHTML = h;
   renderRateCard(o);
   var items = '';
-  (o.items||[]).forEach(function(i){ items += '<div class="crow"><span>' + esc(locName(i)) + ' &#215; ' + i.qty + '</span><span>' + money(i.price*i.qty) + '</span></div>'; });
+  (o.items||[]).forEach(function(i){ var sn = LANG==='en'?(i.sizeEn||i.sizeAr||''):(i.sizeAr||i.sizeEn||''); items += '<div class="crow"><span>' + esc(locName(i)) + (sn?' ('+esc(sn)+')':'') + ' &#215; ' + i.qty + '</span><span>' + money(i.price*i.qty) + '</span></div>'; });
   var created = o.createdAt && o.createdAt.toDate ? o.createdAt.toDate().toLocaleString(LANG==='ar'?'ar-SA':'en-GB') : '';
   document.getElementById('tDetails').innerHTML =
     '<div class="crow"><span>' + t('method') + '</span><span>' + t(o.type==='delivery'?'delivery':'pickup') + '</span></div>' +
