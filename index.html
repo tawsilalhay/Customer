@@ -105,8 +105,18 @@ label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin:0 0
 .modecard b{display:block;font-size:17px;font-weight:600}
 .modecard span{color:var(--muted);font-size:13px}
 
-#mapPick{width:100%;height:100%}
-.mapwrap{flex:1;position:relative;min-height:320px}
+#mapPick{position:absolute;inset:0;width:100%;height:100%}
+.mapwrap{flex:1;position:relative;min-height:340px}
+.leaflet-container{height:100%!important}
+.paycard{display:flex;align-items:center;gap:14px;width:100%;padding:16px;border:1.5px solid var(--line);border-radius:16px;background:#fff;margin-bottom:12px;text-align:start;transition:.15s}
+.paycard.on{border-color:var(--primary);background:var(--secondary-light)}
+.paycard .ic{width:46px;height:46px;border-radius:12px;background:var(--secondary-light);display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.paycard.on .ic{background:#fff}
+.paycard .pt{flex:1;min-width:0}
+.paycard .pt b{display:block;font-size:15px}
+.paycard .pt span{color:var(--muted);font-size:12.5px}
+.paycard .chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:#fff;font-size:13px;flex-shrink:0}
+.paycard.on .chk{background:var(--primary);border-color:var(--primary)}
 .pin{position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);font-size:38px;pointer-events:none;z-index:5;filter:drop-shadow(0 4px 6px rgba(0,0,0,.3))}
 .mapfoot{padding:16px;border-top:1px solid var(--line);background:#fff}
 .zonemsg{padding:12px;border-radius:12px;font-size:14px;margin-bottom:12px;text-align:center}
@@ -248,21 +258,20 @@ label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin:0 0
     <div class="topbar"><button class="iconbtn" onclick="backFromPay()">&#8594;</button><h2 data-i="payTitle">الدفع</h2></div>
     <div class="body">
       <div class="card"><h4 data-i="summary">ملخص الطلب</h4><div id="paySummary"></div></div>
-      <button class="btn dark hidden" id="btnApplePay" onclick="payApple()" style="margin-bottom:14px">&#63743; Pay</button>
-      <div class="card">
-        <h4 data-i="cardPay">الدفع بالبطاقة</h4>
-        <label data-i="cardNum">رقم البطاقة</label>
-        <input class="field" id="cNum" inputmode="numeric" maxlength="19" placeholder="0000 0000 0000 0000" oninput="fmtCard(this)">
-        <label data-i="cardName">اسم حامل البطاقة</label>
-        <input class="field" id="cName" placeholder="—">
-        <div style="display:flex;gap:12px">
-          <div style="flex:1"><label data-i="cardExp">تاريخ الانتهاء</label><input class="field" id="cExp" inputmode="numeric" maxlength="5" placeholder="MM/YY" oninput="fmtExp(this)"></div>
-          <div style="flex:1"><label>CVV</label><input class="field" id="cCvv" inputmode="numeric" maxlength="4" placeholder="123"></div>
-        </div>
-      </div>
+      <h4 style="margin:18px 4px 10px" data-i="choosePay">اختر طريقة الدفع</h4>
+      <button class="paycard" id="pcCash" onclick="pickPay('cash')">
+        <div class="ic">&#128181;</div>
+        <div class="pt"><b data-i="cash">الدفع عند الاستلام</b><span data-i="cashSub">ادفع نقداً أو بالشبكة عند الاستلام/التوصيل</span></div>
+        <div class="chk">&#10003;</div>
+      </button>
+      <button class="paycard hidden" id="pcApple" onclick="pickPay('applepay')">
+        <div class="ic">&#63743;</div>
+        <div class="pt"><b>Apple Pay</b><span data-i="appleSub">ادفع الآن عبر Apple Pay</span></div>
+        <div class="chk">&#10003;</div>
+      </button>
       <div class="err hidden" id="payErr"></div>
     </div>
-    <div class="floatbar"><button class="btn" id="btnPay" onclick="payCard()"><span data-i="payNow">ادفع</span> <span id="payAmount"></span></button></div>
+    <div class="floatbar"><button class="btn" id="btnPay" disabled onclick="submitPay()"><span data-i="confirmOrder">تأكيد الطلب</span> <span id="payAmount"></span></button></div>
   </section>
 
   <section id="s-track" class="screen">
@@ -368,6 +377,8 @@ var I18N = {
     outZone:"عذراً، هذا الموقع خارج نطاق التوصيل، يمكنك اختيار الاستلام.",
     choosePickup:"اختيار الاستلام", tryAgain:"تغيير الموقع",
     payTitle:"الدفع", summary:"ملخص الطلب", cardPay:"الدفع بالبطاقة",
+    choosePay:"اختر طريقة الدفع", cash:"الدفع عند الاستلام", cashSub:"ادفع نقداً أو بالشبكة عند الاستلام/التوصيل",
+    appleSub:"ادفع الآن عبر Apple Pay", confirmOrder:"تأكيد الطلب",
     cardNum:"رقم البطاقة", cardName:"اسم حامل البطاقة", cardExp:"تاريخ الانتهاء",
     payNow:"ادفع", payBad:"بيانات البطاقة غير صحيحة", payFail:"فشلت عملية الدفع، حاول مرة أخرى",
     trackTitle:"تتبع الطلب", orderNo:"رقم الطلب", status:"حالة الطلب", details:"تفاصيل الطلب",
@@ -394,6 +405,8 @@ var I18N = {
     outZone:"Sorry, this location is outside the delivery zone. You may choose pickup.",
     choosePickup:"Choose pickup", tryAgain:"Change location",
     payTitle:"Payment", summary:"Order summary", cardPay:"Pay by card",
+    choosePay:"Choose payment method", cash:"Pay on receipt", cashSub:"Pay cash or card on pickup/delivery",
+    appleSub:"Pay now with Apple Pay", confirmOrder:"Confirm order",
     cardNum:"Card number", cardName:"Cardholder name", cardExp:"Expiry",
     payNow:"Pay", payBad:"Invalid card details", payFail:"Payment failed, please try again",
     trackTitle:"Track order", orderNo:"Order number", status:"Order status", details:"Order details",
@@ -423,7 +436,7 @@ var STATE = {
   unsubOrder:null, unsubChat:null, unsubOrders:null,
   map:null, ordersTab:'active',
   slideIdx:0, slideTimer:null, touchX:0,
-  paying:false, rating:0
+  paying:false, rating:0, payMethod:null
 };
 
 function t(k){ return (I18N[LANG] && I18N[LANG][k]) || I18N.ar[k] || k; }
@@ -739,7 +752,14 @@ function initMap(){
     STATE.map.on('moveend', function(){ var c = STATE.map.getCenter(); checkZone({ lat:c.lat, lng:c.lng }); });
     locateMe();
   }
-  setTimeout(function(){ STATE.map.invalidateSize(); var c = STATE.map.getCenter(); checkZone({ lat:c.lat, lng:c.lng }); }, 200);
+  // إعادة حساب الحجم عدة مرات لضمان الظهور (الشاشة تكون مخفية لحظة الإنشاء)
+  [100, 350, 700].forEach(function(ms){
+    setTimeout(function(){
+      if(!STATE.map) return;
+      STATE.map.invalidateSize();
+      var c = STATE.map.getCenter(); checkZone({ lat:c.lat, lng:c.lng });
+    }, ms);
+  });
 }
 function locateMe(){
   if(!navigator.geolocation) return;
@@ -774,33 +794,44 @@ function mapNext(){
 
 function backFromPay(){ go('s-phone'); }
 function renderPaySummary(){
+  STATE.payMethod = null;
   var h = '';
   STATE.cart.forEach(function(i){ h += '<div class="crow"><span>' + esc(locName(i)) + (itemSizeName(i)?' ('+esc(itemSizeName(i))+')':'') + ' &#215; ' + i.qty + '</span><span>' + money(i.price*i.qty) + '</span></div>'; });
   if(STATE.mode === 'delivery'){ var f = currentFee(); h += '<div class="crow"><span>' + t('deliveryFee') + '</span><span>' + (f===0?t('free'):money(f)) + '</span></div>'; }
   h += '<div class="crow total"><span>' + t('total') + '</span><span>' + money(cartTotal()) + '</span></div>';
   document.getElementById('paySummary').innerHTML = h;
   document.getElementById('payAmount').textContent = money(cartTotal());
-  if(window.ApplePaySession && ApplePaySession.canMakePayments()) document.getElementById('btnApplePay').classList.remove('hidden');
+  // إظهار Apple Pay فقط على الأجهزة الداعمة
+  var showApple = window.ApplePaySession && ApplePaySession.canMakePayments && ApplePaySession.canMakePayments();
+  document.getElementById('pcApple').classList.toggle('hidden', !showApple);
+  // إعادة ضبط الاختيار
+  document.getElementById('pcCash').classList.remove('on');
+  document.getElementById('pcApple').classList.remove('on');
+  document.getElementById('btnPay').disabled = true;
+  document.getElementById('payErr').classList.add('hidden');
 }
-function fmtCard(el){ var v = el.value.replace(/\D/g,'').slice(0,16); el.value = v.replace(/(.{4})/g,'$1 ').trim(); }
-function fmtExp(el){ var v = el.value.replace(/\D/g,'').slice(0,4); el.value = v.length>2 ? v.slice(0,2)+'/'+v.slice(2) : v; }
-function luhn(num){ var s=0,alt=false; for(var i=num.length-1;i>=0;i--){ var d=parseInt(num.charAt(i),10); if(alt){d*=2;if(d>9)d-=9;} s+=d;alt=!alt; } return num.length>=13 && s%10===0; }
+function pickPay(method){
+  STATE.payMethod = method;
+  document.getElementById('pcCash').classList.toggle('on', method==='cash');
+  document.getElementById('pcApple').classList.toggle('on', method==='applepay');
+  document.getElementById('btnPay').disabled = false;
+}
 function payErr(m){ var e=document.getElementById('payErr'); e.textContent=m; e.classList.remove('hidden'); }
-function payCard(){
+
+function submitPay(){
   if(STATE.paying) return;
   document.getElementById('payErr').classList.add('hidden');
-  var num = document.getElementById('cNum').value.replace(/\s/g,'');
-  var name = document.getElementById('cName').value.trim();
-  var exp = document.getElementById('cExp').value;
-  var cvv = document.getElementById('cCvv').value;
-  if(!luhn(num) || !name || !/^\d{2}\/\d{2}$/.test(exp) || cvv.length < 3){ payErr(t('payBad')); return; }
-  var mm = parseInt(exp.split('/')[0],10), yy = parseInt(exp.split('/')[1],10);
-  var now = new Date();
-  if(mm<1||mm>12||yy+2000<now.getFullYear()||(yy+2000===now.getFullYear()&&mm<now.getMonth()+1)){ payErr(t('payBad')); return; }
-  charge({ method:'card', card:{ number:num, name:name, month:mm, year:2000+yy, cvc:cvv } });
+  if(STATE.payMethod === 'cash'){
+    // الدفع عند الاستلام — إنشاء الطلب مباشرة بدون بوابة
+    createOrder('cash', null);
+    return;
+  }
+  if(STATE.payMethod === 'applepay'){ payApple(); return; }
+  payErr(t('choosePay'));
 }
+
 function payApple(){
-  if(!window.ApplePaySession) return;
+  if(!window.ApplePaySession){ payErr(t('payFail')); return; }
   var req = { countryCode:'SA', currencyCode:CONFIG.currency, supportedNetworks:['visa','masterCard','mada'], merchantCapabilities:['supports3DS'], total:{ label:CONFIG.storeName[LANG]||'Naseem', amount:cartTotal().toFixed(2) } };
   var ses = new ApplePaySession(3, req);
   ses.onvalidatemerchant = function(ev){
@@ -822,7 +853,7 @@ function charge(payload, cb){
     })
     .catch(function(e){
       STATE.paying = false; btn.disabled = false;
-      btn.innerHTML = '<span>' + t('payNow') + '</span> <span>' + money(cartTotal()) + '</span>';
+      btn.innerHTML = '<span>' + t('confirmOrder') + '</span> <span>' + money(cartTotal()) + '</span>';
       payErr(t('payFail') + ' (' + e.message + ')'); if(cb) cb(false);
     });
 }
@@ -843,7 +874,7 @@ function createOrder(method, chargeId){
       status: STATE.mode==='delivery' ? 'received' : 'preparing',
       items: STATE.cart.map(function(i){ return { id:i.id, name_ar:i.name_ar||'', name_en:i.name_en||'', price:i.price, qty:i.qty, sizeName:(i.sizeAr||''), sizeAr:(i.sizeAr||''), sizeEn:(i.sizeEn||'') }; }),
       subtotal:Number(cartSubtotal().toFixed(2)), deliveryFee:Number(currentFee().toFixed(2)), total:Number(cartTotal().toFixed(2)),
-      paymentMethod:method, chargeId:chargeId, paid:true,
+      paymentMethod:method, chargeId:chargeId||null, paid:(method!=='cash'),
       customerName:STATE.customer.name||'', customerPhone:STATE.customer.phone||'',
       location: STATE.mode==='delivery' && STATE.location ? { lat:STATE.location.lat, lng:STATE.location.lng } : null,
       lang:LANG, etaMinutes:null, rating:null, ratingComment:'',
