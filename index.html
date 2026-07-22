@@ -240,7 +240,8 @@ label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin:0 0
 
   <section id="s-map" class="screen">
     <div class="topbar"><button class="iconbtn" onclick="go('s-checkout')">&#8594;</button><h2 data-i="mapTitle">تحديد الموقع</h2><button class="iconbtn" onclick="locateMe()">&#9678;</button></div>
-    <div class="mapwrap"><div id="mapPick"></div><div class="pin">&#128205;</div></div>
+    <div style="padding:10px 16px;background:var(--secondary-light);color:var(--primary);font-size:13px;text-align:center" data-i="mapHint">اضغط على موقع بيتك على الخريطة، أو اسحب الدبوس لضبطه</div>
+    <div class="mapwrap"><div id="mapPick"></div></div>
     <div class="mapfoot"><div class="zonemsg" id="zoneMsg"></div><button class="btn" id="btnMapNext" disabled onclick="mapNext()" data-i="confirmLoc">تأكيد الموقع</button></div>
   </section>
 
@@ -304,11 +305,6 @@ label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin:0 0
     <div class="topbar"><button class="iconbtn" onclick="go('s-track')">&#8594;</button><h2 data-i="chatTitle">المحادثة</h2></div>
     <div id="chatBody"></div>
     <div id="chatReadonly" class="readonly hidden" data-i="chatClosed">أُغلقت المحادثة</div>
-    <div class="chatlang" id="chatLangBar">
-      <button onclick="setChatLang('ar')" data-clang="ar">عربي</button>
-      <button onclick="setChatLang('en')" data-clang="en">EN</button>
-      <button onclick="setChatLang('bn')" data-clang="bn">বাংলা</button>
-    </div>
     <div class="chatbar" id="chatInputBar">
       <input id="chatInput" placeholder="..." onkeydown="if(event.key==='Enter')sendMsg()">
       <button onclick="sendMsg()">&#10148;</button>
@@ -372,7 +368,7 @@ var I18N = {
     emptyCart:"السلة فارغة", subtotal:"المجموع", deliveryFee:"رسوم التوصيل",
     free:"مجاني", total:"الإجمالي", phoneTitle:"رقم الجوال", phoneLabel:"رقم الجوال",
     nameLabel:"الاسم", phoneHint:"أدخل رقم جوالك بصيغة 05XXXXXXXX (10 أرقام)",
-    phoneBad:"رقم الجوال غير صحيح", mapTitle:"تحديد الموقع", confirmLoc:"تأكيد الموقع",
+    phoneBad:"رقم الجوال غير صحيح", mapTitle:"تحديد الموقع", confirmLoc:"تأكيد الموقع", mapHint:"اضغط على موقع بيتك على الخريطة، أو اسحب الدبوس لضبطه",
     inZone:"الموقع داخل نطاق التوصيل", outTitle:"خارج نطاق التوصيل",
     outZone:"عذراً، هذا الموقع خارج نطاق التوصيل، يمكنك اختيار الاستلام.",
     choosePickup:"اختيار الاستلام", tryAgain:"تغيير الموقع",
@@ -389,7 +385,7 @@ var I18N = {
     noProducts:"لا توجد منتجات", added:"تمت الإضافة", processing:"جاري المعالجة...", pickSize:"اختر الحجم أولاً",
     activeOrders:"النشطة", pastOrders:"السابقة", noOrders:"لا توجد طلبات",
     rateExp:"قيّم تجربتك", rateSend:"إرسال التقييم", rateThanks:"شكراً لتقييمك",
-    commentOpt:"تعليق (اختياري)", minutes:"دقيقة", sar:"ر.س", locateFail:"تعذر تحديد الموقع"
+    commentOpt:"تعليق (اختياري)", minutes:"دقيقة", sar:"ر.س", locateFail:"تعذر تحديد الموقع", pickLoc:"حدّد موقعك على الخريطة أولاً"
   },
   en: {
     brand:"Naseem", start:"Start order", myOrders:"My orders",
@@ -400,7 +396,7 @@ var I18N = {
     emptyCart:"Your cart is empty", subtotal:"Subtotal", deliveryFee:"Delivery fee",
     free:"Free", total:"Total", phoneTitle:"Phone number", phoneLabel:"Phone number",
     nameLabel:"Name", phoneHint:"Enter your number as 05XXXXXXXX (10 digits)",
-    phoneBad:"Invalid phone number", mapTitle:"Pick location", confirmLoc:"Confirm location",
+    phoneBad:"Invalid phone number", mapTitle:"Pick location", confirmLoc:"Confirm location", mapHint:"Tap your home location on the map, or drag the pin to adjust",
     inZone:"Inside the delivery zone", outTitle:"Outside delivery zone",
     outZone:"Sorry, this location is outside the delivery zone. You may choose pickup.",
     choosePickup:"Choose pickup", tryAgain:"Change location",
@@ -417,14 +413,14 @@ var I18N = {
     noProducts:"No products", added:"Added", processing:"Processing...", pickSize:"Choose a size first",
     activeOrders:"Active", pastOrders:"Past", noOrders:"No orders",
     rateExp:"Rate your experience", rateSend:"Submit rating", rateThanks:"Thanks for your rating",
-    commentOpt:"Comment (optional)", minutes:"min", sar:"SAR", locateFail:"Could not get your location"
+    commentOpt:"Comment (optional)", minutes:"min", sar:"SAR", locateFail:"Could not get your location", pickLoc:"Tap your location on the map first"
   }
 };
 
 var db, auth, messaging, uid = null;
 var LANG = localStorage.getItem('nsm_lang') || 'ar';
 if(LANG === 'bn') LANG = 'ar';
-var CHAT_LANG = localStorage.getItem('nsm_chatlang') || LANG;
+/* المحادثة تتبع لغة التطبيق مباشرة (لا يوجد مبدّل منفصل) */
 
 var STATE = {
   mode:null, banners:[], categories:[], products:[], activeCat:'all',
@@ -436,7 +432,7 @@ var STATE = {
   unsubOrder:null, unsubChat:null, unsubOrders:null,
   map:null, ordersTab:'active',
   slideIdx:0, slideTimer:null, touchX:0,
-  paying:false, rating:0, payMethod:null
+  paying:false, rating:0, payMethod:null, pinMarker:null
 };
 
 function t(k){ return (I18N[LANG] && I18N[LANG][k]) || I18N.ar[k] || k; }
@@ -476,7 +472,6 @@ function applyLang(){
   var lb = document.querySelectorAll('[data-lang]');
   for(var j=0;j<lb.length;j++) lb[j].classList.toggle('on', lb[j].getAttribute('data-lang') === LANG);
   document.getElementById('chatInput').placeholder = t('chatTitle');
-  markChatLang();
 }
 function locName(o, field){ field = field || 'name'; return o[field+'_'+LANG] || o[field+'_ar'] || o[field+'_en'] || ''; }
 
@@ -748,23 +743,29 @@ function initMap(){
         color:'#3F4A32', weight:2, fillColor:'#3F4A32', fillOpacity:.12
       }).addTo(STATE.map);
     }
-    // عند تحريك الخريطة، المركز = موقع العميل (البِن ثابت في المنتصف)
-    STATE.map.on('moveend', function(){ var c = STATE.map.getCenter(); checkZone({ lat:c.lat, lng:c.lng }); });
+    // الضغط على الخريطة ينقل الدبوس لمكان الضغط
+    STATE.map.on('click', function(e){ placePin(e.latlng.lat, e.latlng.lng); });
     locateMe();
   }
-  // إعادة حساب الحجم عدة مرات لضمان الظهور (الشاشة تكون مخفية لحظة الإنشاء)
   [100, 350, 700].forEach(function(ms){
-    setTimeout(function(){
-      if(!STATE.map) return;
-      STATE.map.invalidateSize();
-      var c = STATE.map.getCenter(); checkZone({ lat:c.lat, lng:c.lng });
-    }, ms);
+    setTimeout(function(){ if(STATE.map){ STATE.map.invalidateSize(); } }, ms);
   });
 }
+function placePin(lat, lng){
+  if(!STATE.map) return;
+  if(!STATE.pinMarker){
+    STATE.pinMarker = L.marker([lat,lng],{ draggable:true }).addTo(STATE.map);
+    STATE.pinMarker.on('dragend', function(e){ var ll=e.target.getLatLng(); checkZone({ lat:ll.lat, lng:ll.lng }); });
+  } else {
+    STATE.pinMarker.setLatLng([lat,lng]);
+  }
+  checkZone({ lat:lat, lng:lng });
+}
 function locateMe(){
-  if(!navigator.geolocation) return;
+  if(!navigator.geolocation){ toast(t('locateFail')); return; }
   navigator.geolocation.getCurrentPosition(function(pos){
     if(STATE.map){ STATE.map.setView([pos.coords.latitude, pos.coords.longitude], 16); }
+    placePin(pos.coords.latitude, pos.coords.longitude);
   }, function(){ toast(t('locateFail')); }, { enableHighAccuracy:true, timeout:8000 });
 }
 function pointInPolygon(pt, poly){
@@ -787,7 +788,7 @@ function checkZone(p){
   STATE.location.inZone = ok;
 }
 function mapNext(){
-  if(!STATE.location) return;
+  if(!STATE.location){ toast(t('pickLoc')); return; }
   if(!STATE.location.inZone){ go('s-outzone'); return; }
   go('s-phone');
 }
@@ -1025,16 +1026,20 @@ function openChat(){
   document.getElementById('chatReadonly').classList.toggle('hidden', !closed);
   setTimeout(function(){ var b = document.getElementById('chatBody'); b.scrollTop = b.scrollHeight; }, 150);
 }
-function setChatLang(l){ CHAT_LANG = l; localStorage.setItem('nsm_chatlang', l); markChatLang(); renderChatMessages(LAST_CHAT_SNAP); }
-function markChatLang(){
-  var b = document.querySelectorAll('[data-clang]');
-  for(var i=0;i<b.length;i++) b[i].classList.toggle('on', b[i].getAttribute('data-clang') === CHAT_LANG);
-}
 var LAST_CHAT_SNAP = null;
 function watchChat(orderId){
   if(STATE.unsubChat) STATE.unsubChat();
   STATE.unsubChat = db.collection('chats').doc(orderId).collection('messages').orderBy('createdAt').onSnapshot(function(snap){
+    var hadNew = false;
+    if(LAST_CHAT_SNAP){
+      snap.docChanges().forEach(function(ch){
+        if(ch.type==='added'){ var m=ch.doc.data(); if(m.sender==='admin') hadNew=true; }
+      });
+    }
     LAST_CHAT_SNAP = snap; renderChatMessages(snap);
+    // صوت وتنبيه عند وصول رسالة من الأدمن
+    if(hadNew && document.getElementById('s-chat').className.indexOf('active')<0){ chatBeep(); }
+    else if(hadNew){ chatBeep(); }
   });
 }
 function renderChatMessages(snap){
@@ -1043,12 +1048,24 @@ function renderChatMessages(snap){
   snap.forEach(function(d){
     var m = d.data();
     var mine = m.sender === 'customer';
-    var shown = (m.translations && m.translations[CHAT_LANG]) || m.text;
+    var shown = (m.translations && m.translations[LANG]) || m.text;
     var showOrig = shown !== m.text;
     var ts = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString(LANG==='ar'?'ar-SA':'en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
     h += '<div class="msg ' + (mine?'me':'them') + '">' + esc(shown) + (showOrig?'<span class="orig">' + esc(m.text) + '</span>':'') + '<time>' + ts + '</time></div>';
   });
   var box = document.getElementById('chatBody'); box.innerHTML = h; box.scrollTop = box.scrollHeight;
+}
+function chatBeep(){
+  try{
+    var ctx = new (window.AudioContext||window.webkitAudioContext)();
+    var o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sine'; o.frequency.value=760; o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(.001,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.3,ctx.currentTime+.03);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.25);
+    o.start(); o.stop(ctx.currentTime+.27);
+  }catch(e){}
+  if(navigator.vibrate) navigator.vibrate(200);
 }
 function sendMsg(){
   var el = document.getElementById('chatInput');
@@ -1057,14 +1074,14 @@ function sendMsg(){
   if(chatIsClosed(STATE.order)){ toast(t('chatClosed')); return; }
   el.value = '';
   db.collection('chats').doc(STATE.orderId).collection('messages').add({
-    text:txt, lang:CHAT_LANG, sender:'customer', uid:uid, translations:{},
+    text:txt, lang:LANG, sender:'customer', uid:uid, translations:{},
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }).then(function(ref){
     db.collection('orders').doc(STATE.orderId).set({
       unreadAdmin: firebase.firestore.FieldValue.increment(1),
       lastMessage: txt, lastMessageAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge:true });
-    translateAll(txt, CHAT_LANG).then(function(tr){ ref.set({ translations: tr }, { merge:true }); });
+    translateAll(txt, LANG).then(function(tr){ ref.set({ translations: tr }, { merge:true }); });
   });
 }
 function translateAll(text, from){
